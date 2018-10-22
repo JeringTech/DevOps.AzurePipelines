@@ -1,0 +1,96 @@
+jobs:
+# Build
+- job: build
+  pool:
+    vmImage: 'vs2017-win2016'
+  steps:
+  - script: dotnet build --configuration Release
+  # Publish entire working directory to artifacts - https://docs.microsoft.com/en-us/azure/devops/pipelines/process/phases?view=vsts&tabs=yaml#artifact-download
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathtoPublish: '$(System.DefaultWorkingDirectory)'
+      artifactName: builtProject
+# Test
+- job: test_linux
+  pool:
+    vmImage: 'Ubuntu 16.04'
+  dependsOn: build
+  steps:
+  - template: azure-test.yml
+- job: test_windows
+  pool:
+    vmImage: 'vs2017-win2016'
+  dependsOn: build
+  steps:
+  - template: azure-test.yml
+- job: test_macos
+  pool:
+    vmImage: 'macOS-10.13'
+  dependsOn: build
+  steps:
+  - template: azure-test.yml
+# Deploy
+- job: Windows
+  dependsOn:
+  - test_linux
+  - test_windows
+  - test_macos
+  steps:
+  # Skip checking out the default repository resource
+  - checkout: none
+  # Download entire working directory from artifacts
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download Build Artifacts'
+    inputs:
+      artifactName: builtProject
+      downloadPath: $(System.DefaultWorkingDirectory)
+  - script: |
+      $commit = $env:BUILD_SOURCEVERSION
+
+        # TODO 
+        # If pull request is for a branch other than master, does pipeline run?
+        # If commit is merge commit, are there multiple parents?
+        # In a pull req, is source branch name the branch being merged into or the branch with changes
+      echo $env:BUILD_SOURCEBRANCHNAME
+      git show --no-patch --format="short" $commit
+
+      ## TODO don't continue if not a merge commit into master
+
+      $file = 'changelog.md'
+      $versionHeaderPattern = '^\+##[ \t]*\[(\d+\.\d+\.\d+)\]'
+
+      # Check whether changelog has changed
+      $changedFiles = Invoke-Git show --pretty="" --name-only $commit
+      if(-not($changedFiles -contains $file)){
+	      "Changelog unchanged, nothing to deploy."
+	      exit
+      }
+      else{
+	      "Changelog changed."
+      }
+
+      # Check whether changelog has a new version
+      $addedLines = Invoke-Git diff --unified=0 $commit^ $commit -- $file 
+      $newVersionLines = $addedLines -match $versionHeaderPattern
+      if($newVersionLines.Length -gt 1)
+      {
+	      throw "More than one new versions detected, correct changelog or deploy releases manually."
+      }
+      if($newVersionLines.length -eq 0){
+	      "No new versions, nothing to deploy."
+	      exit
+      }
+      $newVersion = $matches[1]
+      "New version `"$newVersion`" detected."
+
+      # Create new tag
+      $tag = "$newVersion"
+      Invoke-Git tag $tag
+      Invoke-Git push origin master $tag -q
+      " Tag `"$tag`" created and pushed to origin."
+
+      # Pack working dir (dont rebuild)
+      dotnet pack --no-restore --no-build --include-symbols --configuration Release
+
+      # Publish to nuget.org
+      dotnet nuget push **/*.nupkg --source Test --api-key VSTS

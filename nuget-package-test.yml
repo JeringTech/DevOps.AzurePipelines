@@ -1,0 +1,10 @@
+steps:
+# Skip checking out the default repository resource
+- checkout: none
+# Download entire working directory from artifacts
+- task: DownloadBuildArtifacts@0
+  displayName: 'Download Build Artifacts'
+  inputs:
+    artifactName: builtProject
+    downloadPath: $(System.DefaultWorkingDirectory)
+- script: dotnet test **/Test.AzurePipelines.Tests.csproj --no-build --configuration Release --collect "Code coverage"
