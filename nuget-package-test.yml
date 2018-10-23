@@ -1,10 +1,25 @@
-steps:
-# Skip checking out the default repository resource
-- checkout: none
-# Download entire working directory from artifacts
-- task: DownloadBuildArtifacts@0
-  displayName: 'Download Build Artifacts'
-  inputs:
-    artifactName: builtProject
-    downloadPath: $(System.DefaultWorkingDirectory)
-- script: dotnet test **/Test.AzurePipelines.Tests.csproj --no-build --configuration Release --collect "Code coverage"
+parameters:
+  name: ''
+  vmImage: ''
+  globalPackages: ''
+
+jobs:
+- job: ${{ parameters.name }}
+  pool:
+    vmImage: ${{ parameters.vmImage }}
+  dependsOn: Build
+  steps:
+  # Skip checking out the default repository resource
+  - checkout: none
+  # Download entire working directory from pipeline artifacts
+  - task: DownloadPipelineArtifact@0
+    displayName: 'Download Working Directory'
+    inputs:
+      artifactName: builtSolution
+      targetPath: $(System.DefaultWorkingDirectory)
+  - task: DotNetCoreCLI@2
+    displayName: 'Test'
+    inputs:
+      command: test
+      projects: 'test/**/*.csproj'
+      arguments: '--no-restore --no-build --configuration Release'
