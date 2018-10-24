@@ -4,13 +4,17 @@ jobs:
   pool:
     vmImage: 'vs2017-win2016'
   steps:
-  - script: dotnet build --configuration Release -p:CopyLocalLockFileAssemblies=true
+  - powershell: |
+      dotnet build --configuration Release -p:CopyLocalLockFileAssemblies=true
+      # Unhide .git folder and rename it so that PublishPipelineArtifact picks it up
+      attrib -h .git
+      rename-item .git git
   # Publish entire working directory to artifacts - https://docs.microsoft.com/en-us/azure/devops/pipelines/process/phases?view=vsts&tabs=yaml#artifact-download
   - task: PublishPipelineArtifact@0
     displayName: 'Publish Working Directory'
     inputs:
-      targetPath: '$(System.DefaultWorkingDirectory)'
       artifactName: builtSolution
+      targetPath: $(System.DefaultWorkingDirectory)
 # Test
 - template: nuget-package-test.yml
   parameters:
@@ -28,10 +32,9 @@ jobs:
 - job: Deploy
   dependsOn:
   - LinuxTests
-  #- WindowsTests
-  #- macOSTests
+  - WindowsTests
+  - macOSTests
   steps:
-  # Skip checking out the default repository resource
   - checkout: none
   # Download entire working directory from artifacts
   - task: DownloadPipelineArtifact@0
@@ -39,54 +42,88 @@ jobs:
     inputs:
       artifactName: builtSolution
       targetPath: $(System.DefaultWorkingDirectory)
+  # TODO badge (not affected by pull requests), pipeline variables, symbols, code coverage, docs
   - powershell: |
-      dir
-      cd $(System.DefaultWorkingDirectory)
+      # We've set triggers to commits to master and commits to branches with open pull requests 
+      # to master. Only commits to master might have stuff to deploy.
+      # TODO If we use $env:BUILD_REASON -eq 'PullRequest', do manual rebuilds cause deploys?
+      "Current commit's branch: " + $env:BUILD_SOURCEBRANCHNAME
+      if($env:BUILD_SOURCEBRANCHNAME -ne 'master'){
+        "Pull request build, nothing to deploy"
+        exit
+      }
+      "Commit is a merge commit into master..."
+
+      # .git folder was named git so that PublishPipelineArtifact picked it up
+      rename-item git .git
+      
+      # Initialize ps variables (consider using pipeline variables)
       $commit = $env:BUILD_SOURCEVERSION
-        # TODO 
-        # If pull request is for a branch other than master, does pipeline run?
-        # If commit is merge commit, are there multiple parents?
-        # In a pull req, is source branch name the branch being merged into or the branch with changes
-      $env:BUILD_SOURCEBRANCHNAME
-      git show --no-patch --format="short" $commit
-
-      ## TODO don't continue if not a merge commit into master
-
       $file = 'changelog.md'
       $versionHeaderPattern = '^\+##[ \t]*\[(\d+\.\d+\.\d+)\]'
+      $nugetEndpoint = 'https://staging.nuget.org/api/v2/package'
+      $nugetApiKey = "$(nugetApiKey)" # Secret variables do not work for pull request builds, if we want to deploy from such builds, we need to use a service connection.
 
       # Check whether changelog has changed
-      $changedFiles = git show --pretty="" --name-only $commit
-      if(-not($changedFiles -contains $file)){
-       "Changelog unchanged, nothing to deploy."
-       exit
+      # Note: -m displays a diff of the parents of a merge commit
+      $changedFiles = git show -m --pretty="" --name-only $commit
+      "Changed files:"
+        $changedFiles
+      if(-not($changedFiles -contains $file)) {
+        "Changelog unchanged, nothing to deploy."
+        exit
       }
-      else{
-       "Changelog changed."
-      }
+      "Changelog has changed..."
 
       # Check whether changelog has a new version
-      $addedLines = git diff --unified=0 $commit^ $commit -- $file 
-      $newVersionLines = $addedLines -match $versionHeaderPattern
-      if($newVersionLines.Length -gt 1)
-      {
-        throw "More than one new versions detected, correct changelog or deploy releases manually."
+      $diff = git diff --unified=0 $commit^ $commit -- $file 
+      "Diff:"
+      $diff
+      $newVersionLines = $diff -match $versionHeaderPattern
+      if($newVersionLines.Length -gt 1) {
+        throw "More than one new versions found, correct changelog or deploy releases manually."
       }
-      if($newVersionLines.length -eq 0){
+      if($newVersionLines.length -eq 0) {
         "No new versions, nothing to deploy."
         exit
       }
+      $newVersionLines[0] -match $versionHeaderPattern
       $newVersion = $matches[1]
-      "New version `"$newVersion`" detected."
+      "New version `"$newVersion`" found..."
 
-      # Create new tag
-      $tag = "$newVersion"
-      git tag $tag
-      git push origin master $tag -q
-      " Tag `"$tag`" created and pushed to origin."
+      # Check whether tag exists for version
+      $tags = git tag -l
+      "Existing tags:"
+      $tags
+      if($tags -contains $newVersion) {
+        "New version already deployed, nothing to deploy."
+        exit
+      }
+      "New version not deployed yet, deploying..."
 
       # Pack working dir (dont rebuild)
-      dotnet pack --no-restore --no-build --include-symbols --configuration Release
+      dotnet pack --no-restore --no-build --configuration Release -p:PackageVersion=$newVersion
 
       # Publish to nuget.org
-      dotnet nuget push **/*.nupkg --source Test --api-key VSTS
+      $packages = get-childitem src *.nupkg -Recurse
+      "Packages:"
+      $packages
+      foreach($package in $packages) {
+        # TODO fail build if pushing fails (unless package is already published)
+        dotnet nuget push $package.fullname --source $nugetEndpoint --api-key $nugetApiKey
+      }
+
+      # Create new tag
+      $commitAuthorName = git show --pretty="%an" --quiet
+      "Commit author name: " + $commitAuthorName
+      git config user.name $commitAuthorName
+      
+      $commitAuthorEmail = git show --pretty="%ae" --quiet
+      "Commit author email: " + $commitAuthorEmail
+      git config user.email $commitAuthorEmail
+
+      git tag -a $newVersion -m "Azure build ID: $env:BUILDID"
+
+      $uri = $env:BUILD_REPOSITORY_URI -replace "github.com", "$(githubPat)@github.com"
+      git push -u $uri $newVersion -q
+      "Tag $newVersion created and pushed to origin."
