@@ -1,14 +1,34 @@
+# Notes
+# - Secret variables do not work for pull request builds, if we want to deploy from such builds, we need some other way to handle Git and Nuget personal access tokens
+# - what is https://docs.microsoft.com/en-us/azure/devops/pipelines/build/ci-public?view=vsts&tabs=github? can it be used instead of PAT?
+
+parameters:
+  changelogPath: 'CHANGELOG.md'
+  versionHeaderPattern: '^\+##[ \t]*\[(\d+\.\d+\.\d+[0-9A-Za-z-.]*)\]'
+  nugetEndpoint: 'https://staging.nuget.org/api/v2/package'
+  nugetApiKey: "$(nugetApiKey)"
+  buildConfiguration: Release
+
 jobs:
 # Build
 - job: Build
   pool:
     vmImage: 'vs2017-win2016'
   steps:
+  # Build and prepare intermediate artifacts
+  # TODO use internal feed for caching
+  # - clear all sources in config
+  # - add feed > https://docs.microsoft.com/en-us/nuget/tools/cli-ref-config, https://stackoverflow.com/questions/52011878/nuget-add-a-new-package-feed-from-command-line
+  # - source url > https://jeremytcd.pkgs.visualstudio.com/_packaging/Test/nuget/v3/index.json
   - powershell: |
-      dotnet build --configuration Release -p:CopyLocalLockFileAssemblies=true
+      dotnet build --configuration $env:BUILD_CONFIGURATION -p:CopyLocalLockFileAssemblies=true
       # Unhide .git folder and rename it so that PublishPipelineArtifact picks it up
       attrib -h .git
       rename-item .git git
+    # TODO When template parameters can be used in scripts, remove this - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
+    env:
+      BUILD_CONFIGURATION: ${{ parameters.buildConfiguration }}
+
   # Publish entire working directory to artifacts - https://docs.microsoft.com/en-us/azure/devops/pipelines/process/phases?view=vsts&tabs=yaml#artifact-download
   - task: PublishPipelineArtifact@0
     displayName: 'Publish Working Directory'
@@ -20,14 +40,17 @@ jobs:
   parameters:
     name: WindowsTests
     vmImage: 'vs2017-win2016'
+    buildConfiguration: ${{ parameters.buildConfiguration }}
 - template: nuget-package-test.yml
   parameters:
     name: LinuxTests
     vmImage: 'ubuntu-16.04'
+    buildConfiguration: ${{ parameters.buildConfiguration }}
 - template: nuget-package-test.yml
   parameters:
     name: macOSTests
     vmImage: 'macOS-10.13'
+    buildConfiguration: ${{ parameters.buildConfiguration }}
 # Deploy
 - job: Deploy
   dependsOn:
@@ -42,7 +65,7 @@ jobs:
     inputs:
       artifactName: builtSolution
       targetPath: $(System.DefaultWorkingDirectory)
-  # TODO badge (not affected by pull requests), pipeline variables, symbols, code coverage, docs
+  # TODO caching using a feed, code coverage, symbols, docs
   - powershell: |
       # We've set triggers to commits to master and commits to branches with open pull requests 
       # to master. Only commits to master might have stuff to deploy.
@@ -52,34 +75,30 @@ jobs:
         "Pull request build, nothing to deploy"
         exit
       }
-      "Commit is a merge commit into master..."
+      "Commit is a merge commit into master...`n"
 
       # .git folder was named git so that PublishPipelineArtifact picked it up
       rename-item git .git
       
-      # Initialize ps variables (consider using pipeline variables)
+      # Initialize convenience variables
       $commit = $env:BUILD_SOURCEVERSION
-      $file = 'changelog.md'
-      $versionHeaderPattern = '^\+##[ \t]*\[(\d+\.\d+\.\d+)\]'
-      $nugetEndpoint = 'https://staging.nuget.org/api/v2/package'
-      $nugetApiKey = "$(nugetApiKey)" # Secret variables do not work for pull request builds, if we want to deploy from such builds, we need to use a service connection.
 
       # Check whether changelog has changed
       # Note: -m displays a diff of the parents of a merge commit
       $changedFiles = git show -m --pretty="" --name-only $commit
       "Changed files:"
         $changedFiles
-      if(-not($changedFiles -contains $file)) {
+      if(-not($changedFiles -contains $env:CHANGELOG_PATH)) {
         "Changelog unchanged, nothing to deploy."
         exit
       }
-      "Changelog has changed..."
+      "Changelog has changed...`n"
 
       # Check whether changelog has a new version
-      $diff = git diff --unified=0 $commit^ $commit -- $file 
+      $diff = git diff --unified=0 $commit^ $commit -- $env:CHANGELOG_PATH
       "Diff:"
       $diff
-      $newVersionLines = $diff -match $versionHeaderPattern
+      $newVersionLines = $diff -match $env:VERSION_HEADER_PATTERN
       if($newVersionLines.Length -gt 1) {
         throw "More than one new versions found, correct changelog or deploy releases manually."
       }
@@ -87,7 +106,7 @@ jobs:
         "No new versions, nothing to deploy."
         exit
       }
-      $newVersionLines[0] -match $versionHeaderPattern
+      $newVersionLines[0] -match $env:VERSION_HEADER_PATTERN
       $newVersion = $matches[1]
       "New version `"$newVersion`" found..."
 
@@ -102,7 +121,7 @@ jobs:
       "New version not deployed yet, deploying..."
 
       # Pack working dir (dont rebuild)
-      dotnet pack --no-restore --no-build --configuration Release -p:PackageVersion=$newVersion
+      dotnet pack --no-restore --no-build --configuration $env:BUILD_CONFIGURATION -p:PackageVersion=$newVersion
 
       # Publish to nuget.org
       $packages = get-childitem src *.nupkg -Recurse
@@ -110,7 +129,7 @@ jobs:
       $packages
       foreach($package in $packages) {
         # TODO fail build if pushing fails (unless package is already published)
-        dotnet nuget push $package.fullname --source $nugetEndpoint --api-key $nugetApiKey
+        dotnet nuget push $package.fullname --source $env:NUGET_ENDPOINT --api-key $env:NUGET_API_KEY
       }
 
       # Create new tag
@@ -127,3 +146,10 @@ jobs:
       $uri = $env:BUILD_REPOSITORY_URI -replace "github.com", "$(githubPat)@github.com"
       git push -u $uri $newVersion -q
       "Tag $newVersion created and pushed to origin."
+    # TODO When template parameters can be used in scripts, remove this - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
+    env:
+      CHANGELOG_PATH: ${{parameters.changelogPath}}
+      VERSION_HEADER_PATTERN: ${{parameters.versionHeaderPattern}}
+      NUGET_ENDPOINT: ${{parameters.nugetEndpoint}}
+      NUGET_API_KEY: ${{parameters.nugetApiKey}}
+      BUILD_CONFIGURATION: ${{parameters.buildConfiguration}}

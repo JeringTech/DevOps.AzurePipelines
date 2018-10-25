@@ -1,8 +1,8 @@
 parameters:
   name: ''
   vmImage: ''
-  globalPackages: ''
-
+  buildConfiguration: ''
+ 
 jobs:
 - job: ${{ parameters.name }}
   pool:
@@ -22,4 +22,7 @@ jobs:
     inputs:
       command: test
       projects: 'test/**/*.csproj'
-      arguments: '--no-restore --no-build --configuration Release'
+      # TODO not sure why this doesn't work, possible - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
+      # arguments: --no-restore --no-build --configuration ${{parameters.buildConfiguration}}
+      arguments: --no-restore --no-build --configuration Release
+      
