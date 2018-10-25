@@ -15,13 +15,24 @@ jobs:
   pool:
     vmImage: 'vs2017-win2016'
   steps:
-  # Build and prepare intermediate artifacts
+  # Build
   # TODO use internal feed for caching
   # - clear all sources in config
   # - add feed > https://docs.microsoft.com/en-us/nuget/tools/cli-ref-config, https://stackoverflow.com/questions/52011878/nuget-add-a-new-package-feed-from-command-line
   # - source url > https://jeremytcd.pkgs.visualstudio.com/_packaging/Test/nuget/v3/index.json
+  - task: DotNetCoreCLI@2
+    inputs: 
+      command: restore
+      includeNuGetOrg: false
+      vstsFeed: Test # TODO add parameter
+  - task: DotNetCoreCLI@2
+    inputs: 
+      command: build
+      # TODO not sure why this doesn't work, possible - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
+      # arguments: --no-restore --configuration ${{parameters.buildConfiguration}} -p:CopyLocalLockFileAssemblies=true
+      arguments: --no-restore --configuration Release -p:CopyLocalLockFileAssemblies=true
+   # Prepare intermediate artifacts
   - powershell: |
-      dotnet build --configuration $env:BUILD_CONFIGURATION -p:CopyLocalLockFileAssemblies=true
       # Unhide .git folder and rename it so that PublishPipelineArtifact picks it up
       attrib -h .git
       rename-item .git git
