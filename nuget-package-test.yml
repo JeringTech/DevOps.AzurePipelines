@@ -2,7 +2,7 @@ parameters:
   name: ''
   vmImage: ''
   buildConfiguration: ''
- 
+
 jobs:
 - job: ${{ parameters.name }}
   pool:
