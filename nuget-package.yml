@@ -2,16 +2,16 @@
 # - Secret variables do not work for pull request builds, if we want to deploy from such builds, we need some other way to handle Git and Nuget personal access tokens
 # - what is https://docs.microsoft.com/en-us/azure/devops/pipelines/build/ci-public?view=vsts&tabs=github? can it be used instead of PAT?
 
-# TODO docs, output formatting, cleanup
+# TODO output formatting, docs
 # foreach{@{value=$_}}| Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap
 
 parameters:
-  changelogPath: 'CHANGELOG.md'
+  changelogPath: "CHANGELOG.md"
   versionHeaderPattern: '^\+##[ \t]*\[(\d+\.\d+\.\d+[0-9A-Za-z-.]*)\]'
-  nugetEndpoint: 'https://staging.nuget.org/api/v2/package'
+  nugetEndpoint: "https://staging.nuget.org/api/v2/package"
   nugetApiKey: "$(nugetApiKey)"
   codecovKey: "$(codecovKey)"
-  buildConfiguration: Release
+  buildConfiguration: "Release"
   vstsFeedName: "NugetFeed"
 
 jobs:
@@ -113,7 +113,7 @@ jobs:
     inputs:
       testResultsFormat: "VSTest"
       testResultsFiles: "**/*.trx"
-      searchFolder: "$(Agent.TempDirectory)""
+      searchFolder: "$(Agent.TempDirectory)"
       testRunTitle: "WindowsTests"
 - template: "nuget-package-test.yml"
   parameters:

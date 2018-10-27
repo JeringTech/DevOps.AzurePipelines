@@ -1,28 +1,28 @@
 parameters:
-  name: ''
-  vmImage: ''
-  buildConfiguration: ''
+  name: ""
+  vmImage: ""
+  buildConfiguration: ""
 
 jobs:
 - job: ${{ parameters.name }}
   pool:
     vmImage: ${{ parameters.vmImage }}
-  dependsOn: Build
+  dependsOn: "Build"
   steps:
   # Skip checking out the default repository resource
-  - checkout: none
+  - checkout: "none"
   # Download entire working directory from pipeline artifacts
-  - task: DownloadPipelineArtifact@0
-    displayName: 'Download Working Directory'
+  - task: "DownloadPipelineArtifact@0"
+    displayName: "Download Working Directory"
     inputs:
-      artifactName: builtSolution
-      targetPath: $(System.DefaultWorkingDirectory)
-  - task: DotNetCoreCLI@2
-    displayName: 'Test'
+      artifactName: "builtSolution"
+      targetPath: "$(System.DefaultWorkingDirectory)"
+  - task: "DotNetCoreCLI@2"
+    displayName: "Test"
     inputs:
-      command: test
-      projects: 'test/**/*.csproj'
+      command: "test"
+      projects: "test/**/*.csproj"
       # TODO not sure why this doesn't work, possible - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
       # arguments: --no-restore --no-build --configuration ${{parameters.buildConfiguration}}
-      arguments: --no-restore --no-build --configuration Release
+      arguments: "--no-restore --no-build --configuration Release"
       
