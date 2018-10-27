@@ -2,8 +2,7 @@
 # - Secret variables do not work for pull request builds, if we want to deploy from such builds, we need some other way to handle Git and Nuget personal access tokens
 # - what is https://docs.microsoft.com/en-us/azure/devops/pipelines/build/ci-public?view=vsts&tabs=github? can it be used instead of PAT?
 
-# TODO output formatting, docs
-# foreach{@{value=$_}}| Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap
+# TODO docs
 
 parameters:
   changelogPath: "CHANGELOG.md"
@@ -34,8 +33,14 @@ jobs:
       # arguments: --no-restore --configuration ${{parameters.buildConfiguration}} -p:CopyLocalLockFileAssemblies=true
       arguments: "--no-restore --configuration Release -p:CopyLocalLockFileAssemblies=true"
   - powershell: |
-      dotnet tool install InheritDocTool --tool-path . # Install to current dir https://github.com/dotnet/cli/issues/8368
-      .\InheritDoc.exe -b src -o
+      function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
+
+      "Installing InheritDoc:"
+      dotnet tool install InheritDocTool --tool-path . | Render-Body # Install to current dir https://github.com/dotnet/cli/issues/8368
+
+      "Running InheritDoc:"
+      .\InheritDoc.exe -b src -o | Render-Body
+
       # We won't be needing InheritDoc again in the pipeline
       remove-item .\InheritDoc.exe
       remove-item .\.store -recurse
@@ -76,8 +81,10 @@ jobs:
       vstsFeed: ${{parameters.vstsFeedName}}
   # Test and handle code coverage report
   - powershell: |
-      # Test
-      dotnet test --no-build --no-restore --configuration Release --logger trx --results-directory $(Agent.TempDirectory) -p:CollectCoverage=true -p:CoverletOutputFormat=cobertura
+      function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
+
+      "Running tests:"
+      dotnet test --no-build --no-restore --configuration Release --logger trx --results-directory $(Agent.TempDirectory) -p:CollectCoverage=true -p:CoverletOutputFormat=cobertura | Render-Body
 
       # No reports
       $reports = get-childitem coverage.cobertura.xml -Recurse
@@ -86,19 +93,21 @@ jobs:
         exit
       }
 
-      "Reports:"
-      $reports
       $finalReportPath = ''
       # Multiple reports
       if($reports.length -gt 1){
         # Merge  reports
-        "`nMultiple reports found, merging reports..."
+        "Multiple reports found, merge required...`n"
         $reportPaths = ''
         foreach($report in $reports) {
           $reportPaths = $reportPaths + $report.fullname + ';'
         }
-        dotnet tool install dotnet-reportgenerator-globaltool --tool-path . # Install to current dir https://github.com/dotnet/cli/issues/8368
-        .\reportgenerator.exe -reports:$reportPaths -targetdir:. -reporttypes:cobertura
+
+        "Installing ReportGenerator:"
+        dotnet tool install dotnet-reportgenerator-globaltool --tool-path . | Render-Body # Install to current dir https://github.com/dotnet/cli/issues/8368
+
+        "Running ReportGenerator:"
+        .\reportgenerator.exe -reports:$reportPaths -targetdir:. -reporttypes:cobertura | Render-Body 
         $finalReportPath = 'Cobertura.xml'
       }else{
         # Single report
@@ -109,9 +118,13 @@ jobs:
       rename-item git .git
 
       # Publish report to codecov
-      "`nPublishing report to codecov..."
-      choco install codecov --yes --no-progress --cache-location=.
-      codecov -f $finalReportPath -t "$env:CODECOV_KEY" --required # Exit code 1 if uploading of report fails, otherwise it may fail silently
+      "Publishing code coverage report...`n"
+
+      "Installing Codecov:"      
+      choco install codecov --yes --no-progress --cache-location=. | Render-Body 
+
+      "Publishing to Codecov:"
+      codecov -f $finalReportPath -t "$env:CODECOV_KEY" --required | Render-Body # Exit code 1 if uploading of report fails, otherwise it may fail silently
     displayName: "Test and Publish Code Coverage Report"
     env:
       CODECOV_KEY: ${{parameters.codecovKey}} #TODO remove once parameters can be used directly in scripts
@@ -146,15 +159,16 @@ jobs:
       artifactName: "builtSolution"
       targetPath: "$(System.DefaultWorkingDirectory)"
   - powershell: |
+      function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
+
       # We've set triggers to commits to master and commits to branches with open pull requests 
       # to master. Only commits to master might have stuff to deploy.
       # TODO If we use $env:BUILD_REASON -eq 'PullRequest', do manual rebuilds cause deploys?
-      "Current commit's branch: " + $env:BUILD_SOURCEBRANCHNAME
       if($env:BUILD_SOURCEBRANCHNAME -ne 'master'){
         "Pull request build, nothing to deploy"
         exit
       }
-      "Commit is a merge commit into master...`n"
+      "`nCommit is a merge commit into master...`n"
 
       # .git folder was named git so that PublishPipelineArtifact picked it up
       rename-item git .git
@@ -166,7 +180,7 @@ jobs:
       # Note: -m displays a diff of the parents of a merge commit
       $changedFiles = git show -m --pretty="" --name-only $commit
       "Changed files:"
-        $changedFiles
+      $changedFiles | Render-Body 
       if(-not($changedFiles -contains $env:CHANGELOG_PATH)) {
         "Changelog unchanged, nothing to deploy."
         exit
@@ -175,8 +189,13 @@ jobs:
 
       # Check whether changelog has a new version
       $diff = git diff --unified=0 $commit^ $commit -- $env:CHANGELOG_PATH
-      "Diff:"
-      $diff
+      "Changelog diff:"
+      $diff | Render-Body
+
+      $addedLines = $diff -match '^+'
+      "Added Lines:"
+      $addedLines | Render-Body
+
       $newVersionLines = $diff -match $env:VERSION_HEADER_PATTERN
       if($newVersionLines.Length -gt 1) {
         throw "More than one new versions found, correct changelog or deploy releases manually."
@@ -187,44 +206,34 @@ jobs:
       }
       $newVersionLines[0] -match $env:VERSION_HEADER_PATTERN
       $newVersion = $matches[1]
-      "New version `"$newVersion`" found..."
-
-      # Check whether tag exists for version
-      # TODO remove this? just always run so that if in a previous build tagging succeeded but publishing of nuget package failed, it can be 
-      # re-done in a manual build.
-      $tags = git tag -l
-      "Existing tags:"
-      $tags
-      if($tags -contains $newVersion) {
-        "New version already deployed, nothing to deploy."
-        exit
-      }
-      "New version not deployed yet, deploying..."
+      "New version `"$newVersion`" found...`n"
 
       # Pack working dir (dont rebuild)
-      dotnet pack --no-restore --no-build --configuration $env:BUILD_CONFIGURATION -p:PackageVersion=$newVersion
+      "Creating Nuget package(s):"
+      dotnet pack --no-restore --no-build --configuration $env:BUILD_CONFIGURATION -p:PackageVersion=$newVersion | Render-Body
 
       # Publish to nuget.org
+      "Publishing packages:"
       $packages = get-childitem src *.nupkg -Recurse
-      "Packages:"
-      $packages
       foreach($package in $packages) {
-        dotnet nuget push $package.fullname --source $env:NUGET_ENDPOINT --api-key $env:NUGET_API_KEY
+        dotnet nuget push $package.fullname --source $env:NUGET_ENDPOINT --api-key $env:NUGET_API_KEY | Render-Body
       }
 
       # Create new tag
+      "Tagging commit:"      
       $commitAuthorName = git show --pretty="%an" --quiet
-      "Commit author name: " + $commitAuthorName
+      "    Commit author name: " + $commitAuthorName
       git config user.name $commitAuthorName
       
       $commitAuthorEmail = git show --pretty="%ae" --quiet
-      "Commit author email: " + $commitAuthorEmail
+      "    Commit author email: " + $commitAuthorEmail
       git config user.email $commitAuthorEmail
 
       git tag -a $newVersion -m "Azure build ID: $env:BUILDID"
 
       $uri = $env:BUILD_REPOSITORY_URI -replace "github.com", "$(githubPat)@github.com"
-      git push -u $uri $newVersion -q
+      "`nPushing tag to Github:"
+      git push -u $uri $newVersion -q | Render-Body
       "Tag $newVersion created and pushed to origin."
     displayName: "Deploy Nuget Package and Tag Commit"
     # TODO When template parameters can be used in scripts, remove this - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
