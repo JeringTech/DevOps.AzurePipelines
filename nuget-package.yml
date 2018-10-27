@@ -2,7 +2,7 @@
 # - Secret variables do not work for pull request builds, if we want to deploy from such builds, we need some other way to handle Git and Nuget personal access tokens
 # - what is https://docs.microsoft.com/en-us/azure/devops/pipelines/build/ci-public?view=vsts&tabs=github? can it be used instead of PAT?
 
-# TODO symbols, inheritdoc, docs
+# TODO docs, output formatting, cleanup
 
 parameters:
   changelogPath: 'CHANGELOG.md'
@@ -33,6 +33,13 @@ jobs:
       arguments: --no-restore --configuration Release -p:CopyLocalLockFileAssemblies=true
    # Prepare intermediate artifacts
   - powershell: |
+      # <inheritdoc />
+      dotnet tool install InheritDocTool --tool-path . # Install to current dir https://github.com/dotnet/cli/issues/8368
+      .\InheritDoc.exe -b src -o
+      # We won't be needing InheritDoc again in the pipeline
+      remove-item .\InheritDoc.exe
+      remove-item .\.store -recurse
+
       # Unhide .git folder and rename it so that PublishPipelineArtifact picks it up
       attrib -h .git
       rename-item .git git
