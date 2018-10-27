@@ -67,11 +67,17 @@ jobs:
     inputs:
       artifactName: "builtSolution"
       targetPath: "$(System.DefaultWorkingDirectory)"
+  # Restore from Azure Artifacts feed for quicker restore (coverlet assemblies are required)
+  - task: "DotNetCoreCLI@2"
+    displayName: "Restore"
+    inputs: 
+      command: "restore"
+      includeNuGetOrg: false
+      vstsFeed: ${{parameters.vstsFeedName}}
   # Test and handle code coverage report
   - powershell: |
       # Test
-      dotnet restore # TODO cache packages separately from working dir and download before these tests?
-      dotnet test --no-build --configuration Release --logger trx --results-directory $(Agent.TempDirectory) -p:CollectCoverage=true -p:CoverletOutputFormat=cobertura
+      dotnet test --no-build --no-restore --configuration Release --logger trx --results-directory $(Agent.TempDirectory) -p:CollectCoverage=true -p:CoverletOutputFormat=cobertura
 
       # No reports
       $reports = get-childitem coverage.cobertura.xml -Recurse
