@@ -10,7 +10,12 @@ https://docs.microsoft.com/en-us/azure/devops/pipelines/process/templates?view=v
 - Code coverage report generation and publishing.
 - Versioning using a changelog, git tagging.
 - Dependency caching.
+
+## Add Instructions For
 - Symbols using source link.
+- Allowing dotnet test from solution directory.
+- Enabling xml documentation with <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
 
 ## Notes
 nuget-package.yml's last step is a script task. Note how the entire script is inlined. We do it this way because Azure Pipeline's [repositories feature](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/templates?view=vsts#using-other-repositories)
