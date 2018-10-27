@@ -3,6 +3,7 @@
 # - what is https://docs.microsoft.com/en-us/azure/devops/pipelines/build/ci-public?view=vsts&tabs=github? can it be used instead of PAT?
 
 # TODO docs, output formatting, cleanup
+# foreach{@{value=$_}}| Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap
 
 parameters:
   changelogPath: 'CHANGELOG.md'
@@ -11,63 +12,62 @@ parameters:
   nugetApiKey: "$(nugetApiKey)"
   codecovKey: "$(codecovKey)"
   buildConfiguration: Release
+  vstsFeedName: "NugetFeed"
 
 jobs:
 # Build
-- job: Build
+- job: "Build"
   pool:
-    vmImage: 'vs2017-win2016'
+    vmImage: "vs2017-win2016"
   steps:
-  # Restore
-  - task: DotNetCoreCLI@2
+  - task: "DotNetCoreCLI@2"
+    displayName: "Restore"
     inputs: 
-      command: restore
+      command: "restore"
       includeNuGetOrg: false
-      vstsFeed: Test # TODO add parameter
-  # Build
-  - task: DotNetCoreCLI@2
+      vstsFeed: ${{parameters.vstsFeedName}}
+  - task: "DotNetCoreCLI@2"
+    displayName: "Build"
     inputs: 
-      command: build
+      command: "build"
       # TODO not sure why this doesn't work, possible - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
       # arguments: --no-restore --configuration ${{parameters.buildConfiguration}} -p:CopyLocalLockFileAssemblies=true
-      arguments: --no-restore --configuration Release -p:CopyLocalLockFileAssemblies=true
-   # Prepare intermediate artifacts
+      arguments: "--no-restore --configuration Release -p:CopyLocalLockFileAssemblies=true"
   - powershell: |
-      # <inheritdoc />
       dotnet tool install InheritDocTool --tool-path . # Install to current dir https://github.com/dotnet/cli/issues/8368
       .\InheritDoc.exe -b src -o
       # We won't be needing InheritDoc again in the pipeline
       remove-item .\InheritDoc.exe
       remove-item .\.store -recurse
-
+    displayName: "Handle <inheritdoc /> in XML Comments"
+  - powershell: |
       # Unhide .git folder and rename it so that PublishPipelineArtifact picks it up
       attrib -h .git
       rename-item .git git
-    # TODO When template parameters can be used in scripts, remove this - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
+    displayName: "Prepare Intermediate Artifacts"
     env:
-      BUILD_CONFIGURATION: ${{ parameters.buildConfiguration }}
-
+      BUILD_CONFIGURATION: ${{ parameters.buildConfiguration }} # TODO When template parameters can be used in scripts, remove this - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
   # Publish entire working directory to artifacts - https://docs.microsoft.com/en-us/azure/devops/pipelines/process/phases?view=vsts&tabs=yaml#artifact-download
-  - task: PublishPipelineArtifact@0
-    displayName: 'Publish Working Directory'
+  - task: "PublishPipelineArtifact@0"
+    displayName: "Publish Working Directory"
     inputs:
-      artifactName: builtSolution
-      targetPath: $(System.DefaultWorkingDirectory)
+      artifactName: "builtSolution"
+      targetPath: "$(System.DefaultWorkingDirectory)"
 # Test
-- job: WindowsTests
+- job: "WindowsTests"
   pool:
-    vmImage: 'vs2017-win2016'
-  dependsOn: Build
+    vmImage: "vs2017-win2016"
+  dependsOn: "Build"
   steps:
   # Skip checking out the default repository resource
-  - checkout: none
+  - checkout: "none"
   # Download entire working directory from pipeline artifacts
-  - task: DownloadPipelineArtifact@0
-    displayName: 'Download Working Directory'
+  - task: "DownloadPipelineArtifact@0"
+    displayName: "Download Working Directory"
     inputs:
-      artifactName: builtSolution
-      targetPath: $(System.DefaultWorkingDirectory)
-  # Test and handle code coverage reports
+      artifactName: "builtSolution"
+      targetPath: "$(System.DefaultWorkingDirectory)"
+  # Test and handle code coverage report
   - powershell: |
       # Test
       dotnet restore # TODO cache packages separately from working dir and download before these tests?
@@ -85,14 +85,13 @@ jobs:
       $finalReportPath = ''
       # Multiple reports
       if($reports.length -gt 1){
-        # Merge opencover reports
+        # Merge  reports
         "`nMultiple reports found, merging reports..."
         $reportPaths = ''
         foreach($report in $reports) {
           $reportPaths = $reportPaths + $report.fullname + ';'
         }
         dotnet tool install dotnet-reportgenerator-globaltool --tool-path . # Install to current dir https://github.com/dotnet/cli/issues/8368
-        dir
         .\reportgenerator.exe -reports:$reportPaths -targetdir:. -reporttypes:cobertura
         $finalReportPath = 'Cobertura.xml'
       }else{
@@ -106,39 +105,40 @@ jobs:
       # Publish report to codecov
       "`nPublishing report to codecov..."
       choco install codecov --yes --no-progress --cache-location=.
-      codecov -f $finalReportPath -t "$env:CODECOV_KEY" --required # Exit code 1 if uploading of report fails, otherwise it may fail silentlys
+      codecov -f $finalReportPath -t "$env:CODECOV_KEY" --required # Exit code 1 if uploading of report fails, otherwise it may fail silently
+    displayName: "Test and Publish Code Coverage Report"
     env:
       CODECOV_KEY: ${{parameters.codecovKey}} #TODO remove once parameters can be used directly in scripts
-  - task: PublishTestResults@2
+  - task: "PublishTestResults@2"
     inputs:
-      testResultsFormat: VSTest
-      testResultsFiles: '**/*.trx'
-      searchFolder: $(Agent.TempDirectory)
-      testRunTitle: WindowsTests
-- template: nuget-package-test.yml
+      testResultsFormat: "VSTest"
+      testResultsFiles: "**/*.trx"
+      searchFolder: "$(Agent.TempDirectory)""
+      testRunTitle: "WindowsTests"
+- template: "nuget-package-test.yml"
   parameters:
-    name: LinuxTests
-    vmImage: 'ubuntu-16.04'
+    name: "LinuxTests"
+    vmImage: "ubuntu-16.04"
     buildConfiguration: ${{ parameters.buildConfiguration }}
-- template: nuget-package-test.yml
+- template: "nuget-package-test.yml"
   parameters:
-    name: macOSTests
-    vmImage: 'macOS-10.13'
+    name: "macOSTests"
+    vmImage: "macOS-10.13"
     buildConfiguration: ${{ parameters.buildConfiguration }}
 # Deploy
-- job: Deploy
+- job: "Deploy"
   dependsOn:
-  - WindowsTests
-  - LinuxTests
-  - macOSTests
+  - "WindowsTests"
+  - "LinuxTests"
+  - "macOSTests"
   steps:
-  - checkout: none
+  - checkout: "none"
   # Download entire working directory from artifacts
-  - task: DownloadPipelineArtifact@0
-    displayName: 'Download Working Directory'
+  - task: "DownloadPipelineArtifact@0"
+    displayName: "Download Working Directory"
     inputs:
-      artifactName: builtSolution
-      targetPath: $(System.DefaultWorkingDirectory)
+      artifactName: "builtSolution"
+      targetPath: "$(System.DefaultWorkingDirectory)"
   - powershell: |
       # We've set triggers to commits to master and commits to branches with open pull requests 
       # to master. Only commits to master might have stuff to deploy.
@@ -220,6 +220,7 @@ jobs:
       $uri = $env:BUILD_REPOSITORY_URI -replace "github.com", "$(githubPat)@github.com"
       git push -u $uri $newVersion -q
       "Tag $newVersion created and pushed to origin."
+    displayName: "Deploy Nuget Package and Tag Commit"
     # TODO When template parameters can be used in scripts, remove this - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
     env:
       CHANGELOG_PATH: ${{parameters.changelogPath}}
