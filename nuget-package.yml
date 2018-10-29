@@ -6,7 +6,7 @@
 
 parameters:
   changelogPath: "CHANGELOG.md"
-  versionHeaderPattern: '^\+##[ \t]*\[(\d+\.\d+\.\d+[0-9A-Za-z-.]*)\]'
+  versionHeaderPattern: '^##[ \t]*\[(\d+\.\d+\.\d+[0-9A-Za-z-.]*)\]'
   nugetEndpoint: "https://www.nuget.org/api/v2/package"
   nugetApiKey: "$(nugetApiKey)"
   codecovKey: "$(codecovKey)"
@@ -167,18 +167,11 @@ jobs:
       "Changelog has changed...`n"
 
       # Check whether changelog has a new version
-      $diff = git diff --unified=0 $commit^ $commit -- $env:CHANGELOG_PATH
-      "Changelog diff:"
-      $diff | Render-Body
-
-      $addedLines = $diff -match '^+'
+      $addedLines = git diff --unified=0 head~1 head -- CHANGELOG.md | foreach{if($_[0] -eq '+'){$_.Substring(1)}}
       "Added Lines:"
       $addedLines | Render-Body
 
-      $newVersionLines = $diff -match $env:VERSION_HEADER_PATTERN
-      if($newVersionLines.Length -gt 1) {
-        throw "More than one new versions found, correct changelog or deploy releases manually."
-      }
+      $newVersionLines = $addedLines -match $env:VERSION_HEADER_PATTERN
       if($newVersionLines.length -eq 0) {
         "No new versions, nothing to deploy."
         exit
