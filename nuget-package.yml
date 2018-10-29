@@ -87,44 +87,23 @@ jobs:
       dotnet test --no-build --no-restore --configuration Release --logger trx --results-directory $(Agent.TempDirectory) -p:CollectCoverage=true -p:CoverletOutputFormat=cobertura | Render-Body
 
       # No reports
-      $reports = get-childitem coverage.cobertura.xml -Recurse
+      $reports = get-childitem coverage.cobertura.xml -Recurse | foreach{$_.fullname}
       if($reports.length -eq 0){
         "No code coverage reports generated..."
         exit
-      }
-
-      $finalReportPath = ''
-      # Multiple reports
-      if($reports.length -gt 1){
-        # Merge  reports
-        "Multiple reports found, merge required...`n"
-        $reportPaths = ''
-        foreach($report in $reports) {
-          $reportPaths = $reportPaths + $report.fullname + ';'
-        }
-
-        "Installing ReportGenerator:"
-        dotnet tool install dotnet-reportgenerator-globaltool --tool-path . | Render-Body # Install to current dir https://github.com/dotnet/cli/issues/8368
-
-        "Running ReportGenerator:"
-        .\reportgenerator.exe -reports:$reportPaths -targetdir:. -reporttypes:cobertura | Render-Body 
-        $finalReportPath = 'Cobertura.xml'
-      }else{
-        # Single report
-        $finalReportPath = $reports[0].fullname
       }
 
       # .git folder was named git so that PublishPipelineArtifact picked it up, codecov must be run from the root of a repository
       rename-item git .git
 
       # Publish report to codecov
-      "Publishing code coverage report...`n"
+      "Publishing code coverage report(s)...`n"
 
       "Installing Codecov:"      
       choco install codecov --yes --no-progress --cache-location=. | Render-Body 
 
       "Publishing to Codecov:"
-      codecov -f $finalReportPath -t "$env:CODECOV_KEY" --required | Render-Body # Exit code 1 if uploading of report fails, otherwise it may fail silently
+      codecov -f $reports -t "$env:CODECOV_KEY" --required | Render-Body # Exit code 1 if uploading of report fails, otherwise it may fail silently
     displayName: "Test and Publish Code Coverage Report"
     env:
       CODECOV_KEY: ${{parameters.codecovKey}} #TODO remove once parameters can be used directly in scripts
