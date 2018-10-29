@@ -167,17 +167,20 @@ jobs:
       "Changelog has changed...`n"
 
       # Check whether changelog has a new version
-      $addedLines = git diff --unified=0 head~1 head -- CHANGELOG.md | foreach{if($_[0] -eq '+'){$_.Substring(1)}}
+      $addedLines = git diff --unified=0 $commit^ $commit -- $env:CHANGELOG_PATH | foreach{if($_[0] -eq '+'){$_.Substring(1)}}
       "Added Lines:"
       $addedLines | Render-Body
 
-      $newVersionLines = $addedLines -match $env:VERSION_HEADER_PATTERN
-      if($newVersionLines.length -eq 0) {
-        "No new versions, nothing to deploy."
+      foreach($addedLine in $addedLines) {
+        if($addedLine -match $env:VERSION_HEADER_PATTERN){
+          $newVersion = $matches[1]
+          break
+        }
+      }
+      if(-not($newVersion)) {
+        "No new version, nothing to deploy."
         exit
       }
-      $newVersionLines[0] -match $env:VERSION_HEADER_PATTERN
-      $newVersion = $matches[1]
       "New version `"$newVersion`" found...`n"
 
       # Pack working dir (dont rebuild)
@@ -206,7 +209,7 @@ jobs:
       $uri = $env:BUILD_REPOSITORY_URI -replace "github.com", "$(githubPat)@github.com"
       "`nPushing tag to Github:"
       git push -u $uri $newVersion -q | Render-Body
-      "Tag $newVersion created and pushed to origin."
+      "    Tag $newVersion pushed to Github."
     displayName: "Deploy Nuget Package and Tag Commit"
     # TODO When template parameters can be used in scripts, remove this - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
     env:
