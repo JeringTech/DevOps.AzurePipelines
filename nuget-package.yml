@@ -12,6 +12,9 @@ parameters:
   codecovKey: "$(codecovKey)"
   buildConfiguration: "Release"
   vstsFeedName: "NugetFeed"
+  runTests: true
+  runInheritDoc: true
+  runCodeCoverage: true
 
 jobs:
 # Build
@@ -44,6 +47,7 @@ jobs:
       # We won't be needing InheritDoc again in the pipeline
       remove-item .\InheritDoc.exe
       remove-item .\.store -recurse
+    condition: ${{parameters.runInheritDoc}}
     displayName: "Handle <inheritdoc /> in XML Comments"
   - powershell: |
       # Unhide .git folder and rename it so that PublishPipelineArtifact picks it up
@@ -60,6 +64,7 @@ jobs:
       targetPath: "$(System.DefaultWorkingDirectory)"
 # Test
 - job: "WindowsTests"
+  condition: ${{parameters.runTests}}
   pool:
     vmImage: "vs2017-win2016"
   dependsOn: "Build"
@@ -84,7 +89,7 @@ jobs:
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
       "Running tests:"
-      dotnet test --no-build --no-restore --configuration Release --logger trx --results-directory $(Agent.TempDirectory) -p:CollectCoverage=true -p:CoverletOutputFormat=cobertura | Render-Body
+      dotnet test --no-build --no-restore --configuration Release --logger trx --results-directory $(Agent.TempDirectory) -p:CollectCoverage=$env:RUN_CODE_COVERAGE -p:CoverletOutputFormat=cobertura | Render-Body
 
       # No reports
       $reports = get-childitem coverage.cobertura.xml -Recurse | foreach{$_.fullname}
@@ -105,8 +110,10 @@ jobs:
       "Publishing to Codecov:"
       codecov -f $reports -t "$env:CODECOV_KEY" --required | Render-Body # Exit code 1 if uploading of report fails, otherwise it may fail silently
     displayName: "Test and Publish Code Coverage Report"
+    #TODO remove once parameters can be used directly in scripts
     env:
-      CODECOV_KEY: ${{parameters.codecovKey}} #TODO remove once parameters can be used directly in scripts
+      CODECOV_KEY: ${{parameters.codecovKey}}
+      RUN_CODE_COVERAGE: ${{parameters.runCodeCoverage}}
   - task: "PublishTestResults@2"
     inputs:
       testResultsFormat: "VSTest"
@@ -118,11 +125,13 @@ jobs:
     name: "LinuxTests"
     vmImage: "ubuntu-16.04"
     buildConfiguration: ${{ parameters.buildConfiguration }}
+    runTests: ${{ parameters.runTests }}    
 - template: "nuget-package-test.yml"
   parameters:
     name: "macOSTests"
     vmImage: "macOS-10.13"
     buildConfiguration: ${{ parameters.buildConfiguration }}
+    runTests: ${{ parameters.runTests }}
 # Deploy
 - job: "Deploy"
   dependsOn:

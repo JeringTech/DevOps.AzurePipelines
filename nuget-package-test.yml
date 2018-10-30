@@ -2,9 +2,11 @@ parameters:
   name: ""
   vmImage: ""
   buildConfiguration: ""
+  runTests: true
 
 jobs:
 - job: ${{ parameters.name }}
+  condition: ${{parameters.runTests}}
   pool:
     vmImage: ${{ parameters.vmImage }}
   dependsOn: "Build"
