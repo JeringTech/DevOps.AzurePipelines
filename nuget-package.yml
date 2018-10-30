@@ -90,7 +90,7 @@ jobs:
   # TODO why doesn't this work? - condition: ${{and(parameters.runTests, succeeded())}}
   # This also doesn't work - and(${{parameters.runTests}}, succeeded())
   # Test run even if build fails
-  condition: ${{parameters.runTests}}
+  # condition: ${{parameters.runTests}}
   pool:
     vmImage: "vs2017-win2016"
   steps:
@@ -160,6 +160,11 @@ jobs:
   - "WindowsTests"
   - "LinuxTests"
   - "macOSTests"
+  # TODO doesn't work, run if 
+  # - runTests is false and Build has completed or
+  # - runTests is true and Tests have completed
+  # - Doesn't seem possible since succeeded can't be used in expressions
+  # condition: ${{or(not(parameters.runTests), succeeded())}}
   steps:
   - checkout: "none"
   # Download entire working directory from artifacts
@@ -221,7 +226,7 @@ jobs:
       "Pushing packages:"
       $packages = get-childitem src *.nupkg -Recurse
       foreach($package in $packages) {
-        dotnet nuget push $package.fullname --source $env:NUGET_ENDPOINT --api-key $env:NUGET_PAT | Render-Body
+        dotnet nuget push $package.fullname --source $env:NUGET_ENDPOINT --api-key $env:NUGET_PUSH_PAT | Render-Body
       }
 
       # Create new tag
@@ -247,5 +252,5 @@ jobs:
       VERSION_HEADER_PATTERN: ${{parameters.versionHeaderPattern}}
       BUILD_CONFIGURATION: ${{parameters.buildConfiguration}}
       NUGET_ENDPOINT: ${{parameters.nugetPushEndpoint}}
-      NUGET_PAT: ${{parameters.nugetPushPat}}
+      NUGET_PUSH_PAT: ${{parameters.nugetPushPat}}
       GITHUB_PAT: ${{parameters.githubPat}}

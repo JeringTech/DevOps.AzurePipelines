@@ -6,7 +6,7 @@ parameters:
 
 jobs:
 - job: ${{ parameters.name }}
-  condition: ${{parameters.runTests}}
+  # condition: ${{parameters.runTests}}
   pool:
     vmImage: ${{ parameters.vmImage }}
   dependsOn: "Build"
