@@ -5,16 +5,18 @@
 # TODO docs
 
 parameters:
+  nugetRestoreVstsFeed: "NugetFeed"
+  buildConfiguration: "Release"
+  runInheritDoc: true
+  runTests: true
+  runCodeCoverage: true
+  codecovKey: "$(codecovKey)"
   changelogPath: "CHANGELOG.md"
   versionHeaderPattern: '^##[ \t]*\[(\d+\.\d+\.\d+[0-9A-Za-z-.]*)\]'
-  nugetEndpoint: "https://www.nuget.org/api/v2/package"
-  nugetApiKey: "$(nugetApiKey)"
-  codecovKey: "$(codecovKey)"
-  buildConfiguration: "Release"
-  vstsFeedName: "NugetFeed"
-  runTests: true
-  runInheritDoc: true
-  runCodeCoverage: true
+  nugetPushEndpoint: "https://www.nuget.org/api/v2/package"
+  nugetPushApiKey: "$(nugetPushApiKey)"
+  nugetPushVstsFeed: ""
+  githubPat: "$(githubPat)"
 
 jobs:
 # Build
@@ -22,12 +24,17 @@ jobs:
   pool:
     vmImage: "vs2017-win2016"
   steps:
+  # If vsts feed is not specified, use dotnet restore (this will automatically use any provided nuget.config)
+  - powershell: dotnet restore
+    condition: ${{not(parameters.nugetRestoreVstsFeed)}}
+    displayName: "Restore"
   - task: "DotNetCoreCLI@2"
+    condition: ${{ne(parameters.nugetRestoreVstsFeed, '')}}
     displayName: "Restore"
     inputs: 
       command: "restore"
       includeNuGetOrg: false
-      vstsFeed: ${{parameters.vstsFeedName}}
+      vstsFeed: ${{parameters.nugetRestoreVstsFeed}}
   - task: "DotNetCoreCLI@2"
     displayName: "Build"
     inputs: 
@@ -64,10 +71,13 @@ jobs:
       targetPath: "$(System.DefaultWorkingDirectory)"
 # Test
 - job: "WindowsTests"
+  dependsOn: "Build"
+  # TODO why doesn't this work? - condition: ${{and(parameters.runTests, succeeded())}}
+  # This also doesn't work - and(${{parameters.runTests}}, succeeded())
+  # Test run even if build fails
   condition: ${{parameters.runTests}}
   pool:
     vmImage: "vs2017-win2016"
-  dependsOn: "Build"
   steps:
   # Skip checking out the default repository resource
   - checkout: "none"
@@ -77,13 +87,18 @@ jobs:
     inputs:
       artifactName: "builtSolution"
       targetPath: "$(System.DefaultWorkingDirectory)"
+  # If vsts feed not specified, use dotnet restore (this will automatically use any provided nuget.config)
+  - powershell: dotnet restore
+    condition: ${{not(parameters.nugetRestoreVstsFeed)}}
+    displayName: "Restore"
   # Restore from Azure Artifacts feed for quicker restore (coverlet assemblies are required)
   - task: "DotNetCoreCLI@2"
+    condition: ${{ne(parameters.nugetRestoreVstsFeed, '')}}
     displayName: "Restore"
     inputs: 
       command: "restore"
       includeNuGetOrg: false
-      vstsFeed: ${{parameters.vstsFeedName}}
+      vstsFeed: ${{parameters.nugetRestoreVstsFeed}}
   # Test and handle code coverage report
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
@@ -191,18 +206,37 @@ jobs:
         exit
       }
       "New version `"$newVersion`" found...`n"
-
-      # Pack working dir (dont rebuild)
-      "Creating Nuget package(s):"
+      echo "##vso[task.setvariable variable=newVersion]$newVersion"
+    displayName: "Check for new version"
+    # TODO When template parameters can be used in scripts, remove this - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
+    env:
+      CHANGELOG_PATH: ${{parameters.changelogPath}}
+      VERSION_HEADER_PATTERN: ${{parameters.versionHeaderPattern}}
+  - powershell: |
+      "Packing Nuget package(s):"
       dotnet pack --no-restore --no-build --configuration $env:BUILD_CONFIGURATION -p:PackageVersion=$newVersion | Render-Body
-
-      # Publish to nuget.org
-      "Publishing packages:"
+    displayName: "Pack Nuget Packages"
+    env:
+      BUILD_CONFIGURATION: ${{parameters.buildConfiguration}}
+  - powershell: |
+      # Push using endpoint and api key
+      "Pushing packages:"
       $packages = get-childitem src *.nupkg -Recurse
       foreach($package in $packages) {
         dotnet nuget push $package.fullname --source $env:NUGET_ENDPOINT --api-key $env:NUGET_API_KEY | Render-Body
       }
-
+    condition: ${{not(parameters.nugetRestoreVstsFeed)}}
+    displayName: "Push Nuget Packages"
+    env:
+      NUGET_ENDPOINT: ${{parameters.nugetPushEndpoint}}
+      NUGET_API_KEY: ${{parameters.nugetPushApiKey}}
+  - task: "DotNetCoreCLI@2"
+    condition: ${{ne(parameters.nugetPushVstsFeed, '')}}
+    displayName: "Push Nuget Packages"
+    inputs: 
+      command: "push"
+      vstsFeed: ${{parameters.nugetPushVstsFeed}}
+  - powershell: |
       # Create new tag
       "Tagging commit:"      
       $commitAuthorName = git show --pretty="%an" --quiet
@@ -215,15 +249,10 @@ jobs:
 
       git tag -a $newVersion -m "Azure build ID: $env:BUILDID"
 
-      $uri = $env:BUILD_REPOSITORY_URI -replace "github.com", "$(githubPat)@github.com"
+      $uri = $env:BUILD_REPOSITORY_URI -replace "github.com", "$env:GITHUB_PAT@github.com"
       "`nPushing tag to Github:"
       git push -u $uri $newVersion -q | Render-Body
       "    Tag $newVersion pushed to Github."
-    displayName: "Deploy Nuget Package and Tag Commit"
-    # TODO When template parameters can be used in scripts, remove this - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
+    displayName: "Tag commit"
     env:
-      CHANGELOG_PATH: ${{parameters.changelogPath}}
-      VERSION_HEADER_PATTERN: ${{parameters.versionHeaderPattern}}
-      NUGET_ENDPOINT: ${{parameters.nugetEndpoint}}
-      NUGET_API_KEY: ${{parameters.nugetApiKey}}
-      BUILD_CONFIGURATION: ${{parameters.buildConfiguration}}
+      GITHUB_PAT: ${{parameters.githubPat}}
