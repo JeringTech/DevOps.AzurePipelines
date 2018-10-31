@@ -1,4 +1,4 @@
-# Jering.DevOps.AzurePipelines
+# Jering.DevOps.AzurePipelines.Nuget
 TODO work in progress
 
 ## Overview
