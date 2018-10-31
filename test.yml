@@ -20,4 +20,6 @@ jobs:
       # TODO not sure why this doesn't work, possible - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
       # arguments: --no-restore --no-build --configuration ${{parameters.buildConfiguration}}
       arguments: "--no-restore --no-build --configuration Release"
-      
+    # Skip dotnet first time experience
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
