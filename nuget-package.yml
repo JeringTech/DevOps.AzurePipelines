@@ -1,8 +1,5 @@
 # Notes
 # - Secret variables do not work for pull request builds, if we want to deploy from such builds, we need some other way to handle Git and Nuget personal access tokens
-# - what is https://docs.microsoft.com/en-us/azure/devops/pipelines/build/ci-public?view=vsts&tabs=github? can it be used instead of PAT?
-
-# TODO docs
 
 parameters:
   buildConfiguration: "Release"
@@ -112,8 +109,8 @@ jobs:
         "Running tests:"
         dotnet test --no-build --no-restore --configuration Release --logger trx --results-directory $(Agent.TempDirectory) -p:CollectCoverage=$env:RUN_CODE_COVERAGE -p:CoverletOutputFormat=cobertura | Render-Body
 
-        # No reports
         $reports = get-childitem coverage.cobertura.xml -Recurse | foreach{$_.fullname}
+        # No reports
         if($reports.length -eq 0){
           "No code coverage reports generated..."
           exit
