@@ -11,7 +11,7 @@ jobs:
   steps:
   # Skip checking out the default repository resource
   - checkout: "none"
-  - template: "download-working-directory.yml"
+  - template: "../shared/download-working-directory.yml"
   - task: "DotNetCoreCLI@2"
     displayName: "Test"
     inputs:

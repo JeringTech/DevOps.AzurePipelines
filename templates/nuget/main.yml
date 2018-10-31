@@ -93,7 +93,7 @@ jobs:
     steps:
     # Skip checking out the default repository resource
     - checkout: "none"
-    - template: "download-working-directory.yml"
+    - template: "../shared/download-working-directory.yml"
     # Test and handle code coverage report
     - powershell: |
         function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
@@ -133,12 +133,12 @@ jobs:
         testResultsFiles: "**/*.trx"
         searchFolder: "$(Agent.TempDirectory)"
         testRunTitle: "WindowsTests"
-  - template: "test.yml"
+  - template: "../nuget/test.yml"
     parameters:
       name: "LinuxTests"
       vmImage: "ubuntu-16.04"
       buildConfiguration: ${{ parameters.buildConfiguration }}
-  - template: "test.yml"
+  - template: "../nuget/test.yml"
     parameters:
       name: "macOSTests"
       vmImage: "macOS-10.13"
@@ -154,58 +154,26 @@ jobs:
     - "Build"
   steps:
   - checkout: "none"
-  - template: "download-working-directory.yml"
+  - template: "../shared/download-working-directory.yml"
+  - template: "../shared/changelog-versioning.yml"
+    parameters:
+      changelogPath: ${{parameters.changelogPath}}
+      versionHeaderPattern: ${{parameters.versionHeaderPattern}}
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
-      # We've set triggers to commits to master and commits to branches with open pull requests 
-      # to master. Only commits to master might have stuff to deploy.
-      # TODO If we use $env:BUILD_REASON -eq 'PullRequest', do manual rebuilds cause deploys?
-      if($env:BUILD_SOURCEBRANCHNAME -ne 'master'){
-        "Pull request build, nothing to deploy"
-        exit
-      }
-      "`nCommit is a merge commit into master...`n"
+      $version = echo $(version) # TODO don't know why $(version) can't be used without echo
 
-      # .git folder was named git so that PublishPipelineArtifact picked it up
-      rename-item git .git
-      
-      # Initialize convenience variables
-      $commit = $env:BUILD_SOURCEVERSION
-
-      # Check whether changelog has changed
-      # Note: -m displays a diff of the parents of a merge commit
-      $changedFiles = git show -m --pretty="" --name-only $commit
-      "Changed files:"
-      $changedFiles | Render-Body 
-      if(-not($changedFiles -contains $env:CHANGELOG_PATH)) {
-        "Changelog unchanged, nothing to deploy."
-        exit
-      }
-      "Changelog has changed...`n"
-
-      # Check whether changelog has a new version
-      $addedLines = git diff --unified=0 $commit^ $commit -- $env:CHANGELOG_PATH | foreach{if($_[0] -eq '+'){$_.Substring(1)}}
-      "Added Lines:"
-      $addedLines | Render-Body
-
-      foreach($addedLine in $addedLines) {
-        if($addedLine -match $env:VERSION_HEADER_PATTERN){
-          $newVersion = $matches[1]
-          break
-        }
-      }
-      if(-not($newVersion)) {
+      if(-not($version))
+      {
         "No new version, nothing to deploy."
-        exit
       }
-      "New version `"$newVersion`" found...`n"
-    
+
       # Make sure dotnet knows to look for packages in ./packages
       $env:NUGET_PACKAGES=$env:SYSTEM_DEFAULTWORKINGDIRECTORY + "/packages"
 
       "Packing Nuget package(s):"
-      dotnet pack --no-restore --no-build --configuration $env:BUILD_CONFIGURATION -p:PackageVersion=$newVersion | Render-Body
+      dotnet pack --no-restore --no-build --configuration $env:BUILD_CONFIGURATION -p:PackageVersion=$env:VERSION | Render-Body
 
       # Push using endpoint and api key
       "Pushing packages:"
@@ -213,29 +181,12 @@ jobs:
       foreach($package in $packages) {
         dotnet nuget push $package.fullname --source $env:NUGET_ENDPOINT --api-key $env:NUGET_PUSH_PAT | Render-Body
       }
-
-      # Create new tag
-      "Tagging commit:"      
-      $commitAuthorName = git show --pretty="%an" --quiet
-      "    Commit author name: " + $commitAuthorName
-      git config user.name $commitAuthorName
-      
-      $commitAuthorEmail = git show --pretty="%ae" --quiet
-      "    Commit author email: " + $commitAuthorEmail
-      git config user.email $commitAuthorEmail
-
-      git tag -a $newVersion -m "Azure build ID: $env:BUILDID"
-
-      $uri = $env:BUILD_REPOSITORY_URI -replace "github.com", "$env:GITHUB_PAT@github.com"
-      "`nPushing tag to Github:"
-      git push -u $uri $newVersion -q | Render-Body
-      "    Tag $newVersion pushed to Github."
     displayName: "Deploy"
     # TODO When template parameters can be used in scripts, remove this - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
     env:
-      CHANGELOG_PATH: ${{parameters.changelogPath}}
-      VERSION_HEADER_PATTERN: ${{parameters.versionHeaderPattern}}
       BUILD_CONFIGURATION: ${{parameters.buildConfiguration}}
       NUGET_ENDPOINT: ${{parameters.nugetPushEndpoint}}
       NUGET_PUSH_PAT: ${{parameters.nugetPushPat}}
-      GITHUB_PAT: ${{parameters.githubPat}}
+  - template: "../shared/tag-commit.yml"
+    parameters:
+      githubPat: ${{parameters.githubPat}}
