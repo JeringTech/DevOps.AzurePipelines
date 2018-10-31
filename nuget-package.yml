@@ -88,85 +88,78 @@ jobs:
       artifactName: "builtSolution"
       targetPath: "$(System.DefaultWorkingDirectory)"
 # Test
-- job: "WindowsTests"
-  dependsOn: "Build"
-  # TODO why doesn't this work? - condition: ${{and(parameters.runTests, succeeded())}}
-  # This also doesn't work - and(${{parameters.runTests}}, succeeded())
-  # Test run even if build fails
-  # condition: ${{parameters.runTests}}
-  pool:
-    vmImage: "vs2017-win2016"
-  steps:
-  # Skip checking out the default repository resource
-  - checkout: "none"
-  # Download entire working directory from pipeline artifacts
-  - task: "DownloadPipelineArtifact@0"
-    displayName: "Download Working Directory"
-    inputs:
-      artifactName: "builtSolution"
-      targetPath: "$(System.DefaultWorkingDirectory)"
-  # Test and handle code coverage report
-  - powershell: |
-      function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
+- ${{if eq(parameters.runTests, 'true')}}:
+  - job: "WindowsTests"
+    dependsOn: "Build"
+    pool:
+      vmImage: "vs2017-win2016"
+    steps:
+    # Skip checking out the default repository resource
+    - checkout: "none"
+    # Download entire working directory from pipeline artifacts
+    - task: "DownloadPipelineArtifact@0"
+      displayName: "Download Working Directory"
+      inputs:
+        artifactName: "builtSolution"
+        targetPath: "$(System.DefaultWorkingDirectory)"
+    # Test and handle code coverage report
+    - powershell: |
+        function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
-      # Make sure dotnet knows to look for packages in ./packages
-      $env:NUGET_PACKAGES=$env:SYSTEM_DEFAULTWORKINGDIRECTORY + "/packages"
+        # Make sure dotnet knows to look for packages in ./packages
+        $env:NUGET_PACKAGES=$env:SYSTEM_DEFAULTWORKINGDIRECTORY + "/packages"
 
-      "Running tests:"
-      dotnet test --no-build --no-restore --configuration Release --logger trx --results-directory $(Agent.TempDirectory) -p:CollectCoverage=$env:RUN_CODE_COVERAGE -p:CoverletOutputFormat=cobertura | Render-Body
+        "Running tests:"
+        dotnet test --no-build --no-restore --configuration Release --logger trx --results-directory $(Agent.TempDirectory) -p:CollectCoverage=$env:RUN_CODE_COVERAGE -p:CoverletOutputFormat=cobertura | Render-Body
 
-      # No reports
-      $reports = get-childitem coverage.cobertura.xml -Recurse | foreach{$_.fullname}
-      if($reports.length -eq 0){
-        "No code coverage reports generated..."
-        exit
-      }
+        # No reports
+        $reports = get-childitem coverage.cobertura.xml -Recurse | foreach{$_.fullname}
+        if($reports.length -eq 0){
+          "No code coverage reports generated..."
+          exit
+        }
 
-      # .git folder was named git so that PublishPipelineArtifact picked it up, codecov must be run from the root of a repository
-      rename-item git .git
+        # .git folder was named git so that PublishPipelineArtifact picked it up, codecov must be run from the root of a repository
+        rename-item git .git
 
-      # Publish report to codecov
-      "Publishing code coverage report(s)...`n"
+        # Publish report to codecov
+        "Publishing code coverage report(s)...`n"
 
-      "Installing Codecov:"      
-      choco install codecov --yes --no-progress --cache-location=. | Render-Body 
+        "Installing Codecov:"      
+        choco install codecov --yes --no-progress --cache-location=. | Render-Body 
 
-      "Publishing to Codecov:"
-      codecov -f $reports -t "$env:CODECOV_KEY" --required | Render-Body # Exit code 1 if uploading of report fails, otherwise it may fail silently
-    displayName: "Test"
-    #TODO remove once parameters can be used directly in scripts
-    env:
-      CODECOV_KEY: ${{parameters.codecovKey}}
-      RUN_CODE_COVERAGE: ${{parameters.runCodeCoverage}}
-  - task: "PublishTestResults@2"
-    inputs:
-      testResultsFormat: "VSTest"
-      testResultsFiles: "**/*.trx"
-      searchFolder: "$(Agent.TempDirectory)"
-      testRunTitle: "WindowsTests"
-- template: "nuget-package-test.yml"
-  parameters:
-    name: "LinuxTests"
-    vmImage: "ubuntu-16.04"
-    buildConfiguration: ${{ parameters.buildConfiguration }}
-    runTests: ${{ parameters.runTests }}    
-- template: "nuget-package-test.yml"
-  parameters:
-    name: "macOSTests"
-    vmImage: "macOS-10.13"
-    buildConfiguration: ${{ parameters.buildConfiguration }}
-    runTests: ${{ parameters.runTests }}
+        "Publishing to Codecov:"
+        codecov -f $reports -t "$env:CODECOV_KEY" --required | Render-Body # Exit code 1 if uploading of report fails, otherwise it may fail silently
+      displayName: "Test"
+      #TODO remove once parameters can be used directly in scripts
+      env:
+        CODECOV_KEY: ${{parameters.codecovKey}}
+        RUN_CODE_COVERAGE: ${{parameters.runCodeCoverage}}
+    - task: "PublishTestResults@2"
+      inputs:
+        testResultsFormat: "VSTest"
+        testResultsFiles: "**/*.trx"
+        searchFolder: "$(Agent.TempDirectory)"
+        testRunTitle: "WindowsTests"
+  - template: "nuget-package-test.yml"
+    parameters:
+      name: "LinuxTests"
+      vmImage: "ubuntu-16.04"
+      buildConfiguration: ${{ parameters.buildConfiguration }}
+  - template: "nuget-package-test.yml"
+    parameters:
+      name: "macOSTests"
+      vmImage: "macOS-10.13"
+      buildConfiguration: ${{ parameters.buildConfiguration }}
 # Deploy
 - job: "Deploy"
   dependsOn:
-  - "WindowsTests"
-  - "LinuxTests"
-  - "macOSTests"
-  # TODO doesn't work, run if 
-  # - runTests is false and Build has completed or
-  # - runTests is true and Tests have completed
-  # - Doesn't seem possible since succeeded can't be used in expressions
-  # condition: ${{or(not(parameters.runTests), succeeded())}}
+  - ${{if eq(parameters.runTests, 'true')}}:
+    - "WindowsTests"
+    - "LinuxTests"
+    - "macOSTests"
+  - ${{if ne(parameters.runTests, 'true')}}:
+    - "Build"
   steps:
   - checkout: "none"
   # Download entire working directory from artifacts
