@@ -11,12 +11,7 @@ jobs:
   steps:
   # Skip checking out the default repository resource
   - checkout: "none"
-  # Download entire working directory from pipeline artifacts
-  - task: "DownloadPipelineArtifact@0"
-    displayName: "Download Working Directory"
-    inputs:
-      artifactName: "builtSolution"
-      targetPath: "$(System.DefaultWorkingDirectory)"
+  - template: "download-working-directory.yml"
   - task: "DotNetCoreCLI@2"
     displayName: "Test"
     inputs:

@@ -82,7 +82,7 @@ jobs:
   - task: "PublishPipelineArtifact@0"
     displayName: "Publish Working Directory"
     inputs:
-      artifactName: "builtSolution"
+      artifactName: "WorkingDirectory"
       targetPath: "$(System.DefaultWorkingDirectory)"
 # Test
 - ${{if eq(parameters.runTests, 'true')}}:
@@ -93,12 +93,7 @@ jobs:
     steps:
     # Skip checking out the default repository resource
     - checkout: "none"
-    # Download entire working directory from pipeline artifacts
-    - task: "DownloadPipelineArtifact@0"
-      displayName: "Download Working Directory"
-      inputs:
-        artifactName: "builtSolution"
-        targetPath: "$(System.DefaultWorkingDirectory)"
+    - template: "download-working-directory.yml"
     # Test and handle code coverage report
     - powershell: |
         function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
@@ -138,12 +133,12 @@ jobs:
         testResultsFiles: "**/*.trx"
         searchFolder: "$(Agent.TempDirectory)"
         testRunTitle: "WindowsTests"
-  - template: "nuget-package-test.yml"
+  - template: "test.yml"
     parameters:
       name: "LinuxTests"
       vmImage: "ubuntu-16.04"
       buildConfiguration: ${{ parameters.buildConfiguration }}
-  - template: "nuget-package-test.yml"
+  - template: "test.yml"
     parameters:
       name: "macOSTests"
       vmImage: "macOS-10.13"
@@ -159,12 +154,7 @@ jobs:
     - "Build"
   steps:
   - checkout: "none"
-  # Download entire working directory from artifacts
-  - task: "DownloadPipelineArtifact@0"
-    displayName: "Download Working Directory"
-    inputs:
-      artifactName: "builtSolution"
-      targetPath: "$(System.DefaultWorkingDirectory)"
+  - template: "download-working-directory.yml"
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
