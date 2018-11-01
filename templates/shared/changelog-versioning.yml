@@ -19,46 +19,20 @@ steps:
     # .git folder was named git so that PublishPipelineArtifact picked it up
     rename-item git .git
     
-    # Initialize convenience variables
-    $commit = $env:BUILD_SOURCEVERSION
+    # Find new version
+    $changelogVersions = get-content $env:CHANGELOG_PATH | foreach{if($_ -match $env:VERSION_HEADER_PATTERN){$matches[1]}}
+    $gitTags = git tag -l
+    $newVersion = $changelogVersions | where{-not($tags -contains $_)}
 
-    # TODO improve versioning
-    # possible plan:
-    # If current commit is tagged
-    # - Assume we are re-running manually cause a push failed, pack and attempt to push again, fail only if unable to push 
-    #   AND the reason isn't because packages already exist in the feed
-    # If current commit isn't tagged, check what versions are listed in changelog
-    # - If a listed version has no corresponding tag, tag and push packages
-    # - If every listed version has a corresponding tag, don't do anything
-    # think through tag before or after pushing, possibly tagging after pushing might be better
-
-
-    # Check whether changelog has changed
-    # Note: -m displays a diff of the parents of a merge commit
-    $changedFiles = git show -m --pretty="" --name-only $commit
-    "Changed files:"
-    $changedFiles | Render-Body 
-    if(-not($changedFiles -contains $env:CHANGELOG_PATH)) {
-      "Changelog unchanged, nothing to deploy."
-      exit
+    # If there is only 1 string, powershell assigns a string with non-zero length to $newVersion
+    if($newVersion -is [array]){
+      throw "Multiple new versions found, manual deployment required:`n$newVersion"
     }
-    "Changelog has changed...`n"
-
-    # Check whether changelog has a new version
-    $addedLines = git diff --unified=0 $commit^ $commit -- $env:CHANGELOG_PATH | foreach{if($_[0] -eq '+'){$_.Substring(1)}}
-    "Added Lines:"
-    $addedLines | Render-Body
-
-    foreach($addedLine in $addedLines) {
-      if($addedLine -match $env:VERSION_HEADER_PATTERN){
-        $newVersion = $matches[1]
-        break
-      }
-    }
-    if(-not($newVersion)) {
+    if($newVersion.length -eq 0){
       "No new version."
       exit
     }
+
     "New version `"$newVersion`" found.`n"
     write-host "##vso[task.setvariable variable=version]$newVersion"
   displayName: "Changelog versioning"

@@ -4,10 +4,10 @@
 parameters:
   changelogPath: "CHANGELOG.md"
   versionHeaderPattern: '^##[ \t]*\[(\d+\.\d+\.\d+[0-9A-Za-z-.]*)\]'
-  installRegistryEndpoint: "https://www.npm.org/api/v2/package"
-  installRegistryPat: "$(installRegistryPat)"
-  publishRegistryEndpoint: "https://www.npm.org/api/v2/package"
-  publishRegistryPat: "$(publishRegistryPat)"
+  npmInstallEndpoint: "https://www.npm.org/api/v2/package"
+  npmInstallPat: "$(npmInstallPat)"
+  npmPublishEndpoint: "https://www.npm.org/api/v2/package"
+  npmPublishPat: "$(npmPublishPat)"
   githubPat: "$(githubPat)"
 
 jobs:
@@ -18,8 +18,8 @@ jobs:
   steps:
   - template: set-registry.yml
     parameters:
-      endpoint: ${{parameters.installRegistryEndpoint}}
-      pat: ${{parameters.installRegistryPat}}
+      endpoint: ${{parameters.npmInstallEndpoint}}
+      pat: ${{parameters.npmInstallPat}}
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
@@ -33,9 +33,6 @@ jobs:
       attrib -h .git
       rename-item .git git
     displayName: "Build"
-    env:
-      NPM_INSTALL_ENDPOINT: ${{parameters.installRegistryEndpoint}}
-      NPM_INSTALL_PAT: ${{parameters.installRegistryPat}}
   - template: "../shared/publish-working-directory.yml"
 # TODO Test
 # Deploy
@@ -45,24 +42,35 @@ jobs:
   steps:
   - checkout: "none"
   - template: "../shared/download-working-directory.yml"
+  - powershell: |
+      # .git folder was named git so that PublishPipelineArtifact picked it up, "npm version" uses git
+      rename-item git .git
+    displayName: Renaming git folder
   - template: "../shared/changelog-versioning.yml"
     parameters:
       changelogPath: ${{parameters.changelogPath}}
       versionHeaderPattern: ${{parameters.versionHeaderPattern}}
   - template: set-registry.yml
     parameters:
-      endpoint: ${{parameters.publishRegistryEndpoint}}
-      pat: ${{parameters.publishRegistryPat}}
+      endpoint: ${{parameters.npmPublishEndpoint}}
+      pat: ${{parameters.npmPublishPat}}
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
+      "Setting package version:"
+      npm version $env:VERSION | Render-Body
+
       "Publishing package:"
-      npm publish --tag $env:VERSION | Render-Body
+      $message = npm publish
+      $message | Render-Body
+
+      # TODO this is brittle. Error messages may change in future npm releases, consider "npm view <package name>@<version>" to check
+      # whether the version already exists.
+      if(($lastExitCode -ne 0) -and -not($message -contains 'Failed PUT 403')) {
+        throw "An unexpected error occurred while attempting to publish package If it was an intermittent issue, do a manual rebuild of the same commit ($env:BUILD_SOURCEVERSION). Otherwise, rectify the issue and merge the changes into master to trigger a CI build."
+      }
     displayName: "Publish"
     condition: ne(variables['version'], '')
-    env:
-      NPM_PUBLISH_ENDPOINT: ${{parameters.publishRegistryEndpoint}}
-      NPM_PUBLISH_PAT: ${{parameters.publishRegistryPat}}
   - template: "../shared/tag-commit.yml"
     parameters:
       githubPat: ${{parameters.githubPat}}

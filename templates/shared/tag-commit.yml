@@ -15,12 +15,18 @@ steps:
     "    Commit author email: " + $commitAuthorEmail
     git config user.email $commitAuthorEmail
 
-    git tag -a $env:VERSION -m "Azure build ID: $env:BUILDID"
+    git tag -a $env:VERSION -m "Azure build ID: $env:BUILDID" | RENDER-Body
 
     # Push to Github
     $uri = $env:BUILD_REPOSITORY_URI -replace "github.com", "$env:GITHUB_PAT@github.com"
     "`nPushing tag to Github:"
     git push -u $uri $env:VERSION -q | Render-Body
+
+    if($lastExitCode -eq 0){
+      throw "An error occurred while attempting to push tag $env:VERSION to Github. If it was an intermittent issue, 
+    do a manual rebuild of the same commit ($env:BUILD_SOURCEVERSION). Otherwise, manually tag commit $env:BUILD_SOURCEVERSION as $env:VERSION (packages generated from this commit have already been published) then
+    rectify the issue and merge the changes into master to trigger a CI build."
+    }
     "    Tag $env:VERSION pushed to Github."
   condition: ne(variables['version'], '')
   displayName: "Tag commit"

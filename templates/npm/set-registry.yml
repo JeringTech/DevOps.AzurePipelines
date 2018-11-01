@@ -10,7 +10,7 @@ steps:
 
     if($env:PAT){
       "Setting registry PAT..."
-      add-content .npmrc "//pkgs.dev.azure.com/JeremyTCD/_packaging/Main/npm/registry/:_authToken=$env:PAT
+      add-content .npmrc "$($env:ENDPOINT -replace 'https:', ''):_authToken=$env:PAT
     always-auth=true"
     }
   displayName: "Set registry"
