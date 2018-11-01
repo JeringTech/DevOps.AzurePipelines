@@ -5,13 +5,6 @@ steps:
 - powershell: |
     function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
-    $version = echo $(version) # TODO don't know why $(version) can't be used without echo
-
-    if(-not($version))
-    {
-      "No new version, nothing to tag."
-    }
-
     # Create new tag
     "Tagging commit:"      
     $commitAuthorName = git show --pretty="%an" --quiet
@@ -22,12 +15,14 @@ steps:
     "    Commit author email: " + $commitAuthorEmail
     git config user.email $commitAuthorEmail
 
-    git tag -a $version -m "Azure build ID: $env:BUILDID"
+    git tag -a $env:VERSION -m "Azure build ID: $env:BUILDID"
 
     # Push to Github
     $uri = $env:BUILD_REPOSITORY_URI -replace "github.com", "$env:GITHUB_PAT@github.com"
     "`nPushing tag to Github:"
-    git push -u $uri $version -q | Render-Body
-    "    Tag $version pushed to Github."
+    git push -u $uri $env:VERSION -q | Render-Body
+    "    Tag $env:VERSION pushed to Github."
+  condition: ne(variables['version'], '')
+  displayName: "Tag commit"
   env: 
     GITHUB_PAT: ${{parameters.githubPat}}

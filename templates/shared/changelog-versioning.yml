@@ -22,6 +22,17 @@ steps:
     # Initialize convenience variables
     $commit = $env:BUILD_SOURCEVERSION
 
+    # TODO improve versioning
+    # possible plan:
+    # If current commit is tagged
+    # - Assume we are re-running manually cause a push failed, pack and attempt to push again, fail only if unable to push 
+    #   AND the reason isn't because packages already exist in the feed
+    # If current commit isn't tagged, check what versions are listed in changelog
+    # - If a listed version has no corresponding tag, tag and push packages
+    # - If every listed version has a corresponding tag, don't do anything
+    # think through tag before or after pushing, possibly tagging after pushing might be better
+
+
     # Check whether changelog has changed
     # Note: -m displays a diff of the parents of a merge commit
     $changedFiles = git show -m --pretty="" --name-only $commit
@@ -49,7 +60,7 @@ steps:
       exit
     }
     "New version `"$newVersion`" found.`n"
-    echo "##vso[task.setvariable variable=version]$newVersion"
+    write-host "##vso[task.setvariable variable=version]$newVersion"
   displayName: "Changelog versioning"
   env:
     CHANGELOG_PATH: ${{parameters.changelogPath}}

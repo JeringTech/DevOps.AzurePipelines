@@ -1,0 +1,7 @@
+steps:
+# Publish entire working directory to artifacts - https://docs.microsoft.com/en-us/azure/devops/pipelines/process/phases?view=vsts&tabs=yaml#artifact-download
+- task: "PublishPipelineArtifact@0"
+  displayName: "Publish Working Directory"
+  inputs:
+    artifactName: "WorkingDirectory"
+    targetPath: "$(System.DefaultWorkingDirectory)"

@@ -1,0 +1,19 @@
+parameters:
+  endpoint: ""
+  pat: ""
+
+steps:
+- powershell: |
+    "Setting registry:`n"
+    set-content .npmrc "registry=$env:ENDPOINT"
+    "    Registry set to $env:ENDPOINT.`n"
+
+    if($env:PAT){
+      "Setting registry PAT..."
+      add-content .npmrc "//pkgs.dev.azure.com/JeremyTCD/_packaging/Main/npm/registry/:_authToken=$env:PAT
+    always-auth=true"
+    }
+  displayName: "Set registry"
+  env:
+    ENDPOINT: ${{parameters.endpoint}}
+    PAT: ${{parameters.pat}}
