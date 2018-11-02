@@ -3,6 +3,7 @@ steps:
     # Unhide .git folder and rename it so that PublishPipelineArtifact picks it up
     attrib -h .git
     rename-item .git git
+  displayName: Rename git folder
 # Publish entire working directory to artifacts - https://docs.microsoft.com/en-us/azure/devops/pipelines/process/phases?view=vsts&tabs=yaml#artifact-download
 - task: "PublishPipelineArtifact@0"
   displayName: "Publish Working Directory"
