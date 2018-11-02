@@ -35,7 +35,7 @@ steps:
       exit
     }
 
-    "New version `"$newVersion`" found.`n"
+    "New version `"$newVersion`" found...`n"
     write-host "##vso[task.setvariable variable=version]$newVersion"
   displayName: "Changelog versioning"
   env:
