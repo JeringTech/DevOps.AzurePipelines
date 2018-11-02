@@ -5,3 +5,7 @@ steps:
   inputs:
     artifactName: "WorkingDirectory"
     targetPath: "$(System.DefaultWorkingDirectory)"
+- powershell: |
+    # .git folder was named git so that PublishPipelineArtifact picked it up
+    rename-item git .git
+  displayName: Rename git folder

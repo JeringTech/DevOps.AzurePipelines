@@ -69,10 +69,6 @@ jobs:
         remove-item .\InheritDoc.exe
         remove-item .\.store -recurse
       }
-
-      # Unhide .git folder and rename it so that PublishPipelineArtifact picks it up
-      attrib -h .git
-      rename-item .git git
     displayName: "Build"
     env:
       NUGET_DIST_URL: ${{parameters.nugetDistUrl}}
@@ -106,9 +102,6 @@ jobs:
           "No code coverage reports generated..."
           exit
         }
-
-        # .git folder was named git so that PublishPipelineArtifact picked it up, codecov must be run from the root of a repository
-        rename-item git .git
 
         # Publish report to codecov
         "Publishing code coverage report(s)...`n"

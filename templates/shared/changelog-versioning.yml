@@ -16,9 +16,6 @@ steps:
     }
     "`nCommit is a merge commit into master...`n"
 
-    # .git folder was named git so that PublishPipelineArtifact picked it up
-    rename-item git .git
-    
     # Find new version
     $changelogVersions = get-content $env:CHANGELOG_PATH | foreach{if($_ -match $env:VERSION_HEADER_PATTERN){$matches[1]}}
     $gitTags = git tag -l

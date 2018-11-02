@@ -28,10 +28,6 @@ jobs:
 
       "Building project:"
       npm run build | Render-Body
-
-      # Unhide .git folder and rename it so that PublishPipelineArtifact picks it up
-      attrib -h .git
-      rename-item .git git
     displayName: "Build"
   - template: "../shared/publish-working-directory.yml"
 # TODO Test
@@ -42,10 +38,6 @@ jobs:
   steps:
   - checkout: "none"
   - template: "../shared/download-working-directory.yml"
-  - powershell: |
-      # .git folder was named git so that PublishPipelineArtifact picked it up, "npm version" uses git
-      rename-item git .git
-    displayName: Renaming git folder
   - template: "../shared/changelog-versioning.yml"
     parameters:
       changelogPath: ${{parameters.changelogPath}}
