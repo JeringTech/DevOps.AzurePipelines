@@ -50,7 +50,7 @@ jobs:
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
       "Setting package version:"
-      npm version $env:VERSION -f | Render-Body
+      npm version $env:VERSION -f --no-git-tag-version | Render-Body
 
       "Publishing package:"
       $message = npm publish
