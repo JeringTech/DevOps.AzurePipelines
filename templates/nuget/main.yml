@@ -165,10 +165,18 @@ jobs:
         $message | Render-body
 
         # 409 returned if a package with the provided ID and version already exists - https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#push-a-package
-        if(($lastExitCode -ne 0) -and -not($message -contains ' 409 ')) {
-          throw "An unexpected error occurred while attempting to publish $package. If it was an intermittent issue, do a manual rebuild of the same commit ($env:BUILD_SOURCEVERSION). Otherwise, rectify the issue and merge the changes into master to trigger a CI build."
+        if($lastExitCode -ne 0{
+          if($message -contains ' 409 '){
+            # If error occurred because package already exists, allow pipeline to continue
+            "$($package.fullname) already exists..."
+          }else{
+            throw "An unexpected error occurred while attempting to publish $package. If it was an intermittent issue, do a manual rebuild of the same commit ($env:BUILD_SOURCEVERSION). Otherwise, rectify the issue and merge the changes into master to trigger a CI build."
+          }
         }
       }
+
+      # If we get here, any failed publish attempts were because the package already exists
+      exit 0
     displayName: "Push"
     condition: and(succeeded(), ne(variables['version'], ''))
     # TODO When template parameters can be used in scripts, remove this - https://github.com/Microsoft/azure-pipelines-agent/issues/1772

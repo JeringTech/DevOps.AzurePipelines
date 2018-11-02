@@ -16,18 +16,22 @@ jobs:
   pool:
     vmImage: "vs2017-win2016"
   steps:
-  - template: set-registry.yml
+  - template: set-npmrc.yml
     parameters:
       endpoint: ${{parameters.npmInstallEndpoint}}
       pat: ${{parameters.npmInstallPat}}
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
+      # Can't use chocolatey, the installation script errors out
+      "Installing Yarn:"      
+      npm install yarn | Render-Body 
+
       "Restoring dependencies:"
-      npm install | Render-Body
+      .\node_modules\.bin\yarn install | Render-Body
 
       "Building project:"
-      npm run build | Render-Body
+      .\node_modules\.bin\yarn run build | Render-Body
     displayName: "Build"
   - template: "../shared/publish-working-directory.yml"
 # TODO Test
@@ -42,24 +46,27 @@ jobs:
     parameters:
       changelogPath: ${{parameters.changelogPath}}
       versionHeaderPattern: ${{parameters.versionHeaderPattern}}
-  - template: set-registry.yml
+  - template: set-npmrc.yml
     parameters:
       endpoint: ${{parameters.npmPublishEndpoint}}
       pat: ${{parameters.npmPublishPat}}
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
-      "Setting package version:"
-      npm version $env:VERSION -f --no-git-tag-version | Render-Body
-
       "Publishing package:"
-      $message = npm publish
-      $message | Render-Body
+      .\node_modules\.bin\yarn publish --no-git-tag-version --new-version $env:VERSION | Render-Body
 
-      # TODO this is brittle. Error messages may change in future npm releases, consider "npm view <package name>@<version>" to check
-      # whether the version already exists.
-      if(($lastExitCode -ne 0) -and -not($message -contains 'Failed PUT 403')) {
-        throw "An unexpected error occurred while attempting to publish package If it was an intermittent issue, do a manual rebuild of the same commit ($env:BUILD_SOURCEVERSION). Otherwise, rectify the issue and merge the changes into master to trigger a CI build."
+      if($lastExitCode -ne 0) {
+        $packageJson = get-content package.json | convertfrom-json
+        $packageVersions = (.\node_modules\.bin\yarn info $packageJson.name versions -s --json | convertfrom-json).data
+
+        # If error occurred because package already exists, allow pipeline to continue
+        if($packageVersions -contains $env:VERSION){
+          "$($packageJson.name)@$env:VERSION already exists..."
+          exit 0
+        }else{
+          throw "An unexpected error occurred while attempting to publish the package. If it was an intermittent issue, do a manual rebuild of the same commit ($env:BUILD_SOURCEVERSION). Otherwise, rectify the issue and merge the changes into master to trigger a CI build."
+        }
       }
     displayName: "Publish"
     condition: and(succeeded(), ne(variables['version'], '')) # If previous tasks succeeded and a non empty version variable exists
