@@ -4,9 +4,9 @@
 parameters:
   changelogPath: "CHANGELOG.md"
   versionHeaderPattern: '^##[ \t]*\[(\d+\.\d+\.\d+[0-9A-Za-z-.]*)\]'
-  npmInstallEndpoint: "https://www.npm.org/api/v2/package"
+  npmInstallEndpoint: "https://registry.npmjs.org/"
   npmInstallPat: ""
-  npmPublishEndpoint: "https://www.npm.org/api/v2/package"
+  npmPublishEndpoint: "https://registry.npmjs.org/"
   npmPublishPat: "$(npmPublishPat)"
   githubPat: "$(githubPat)"
 
