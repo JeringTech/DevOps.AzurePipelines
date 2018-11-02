@@ -17,10 +17,15 @@ steps:
     "`nCommit is a merge commit into master...`n"
 
     # Find new version
+    "Changelog versions:"
     $changelogVersions = get-content $env:CHANGELOG_PATH | foreach{if($_ -match $env:VERSION_HEADER_PATTERN){$matches[1]}}
+    $changelogVersions | Render-Body
+    
+    "Git tags:"
     $gitTags = git tag -l
-    $newVersion = $changelogVersions | where{-not($tags -contains $_)}
+    $gitTags | Render-Body
 
+    $newVersion = $changelogVersions | where{-not($gitTags -contains $_)}
     # If there is only 1 string, powershell assigns a string with non-zero length to $newVersion
     if($newVersion -is [array]){
       throw "Multiple new versions found, manual deployment required:`n$newVersion"
