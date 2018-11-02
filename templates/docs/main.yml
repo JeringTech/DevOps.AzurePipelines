@@ -1,0 +1,48 @@
+# Notes
+# - Secret variables do not work for pull request builds, if we want to deploy from such builds, we need some other way to handle Git and Nuget personal access tokens
+
+parameters:
+  npmInstallEndpoint: "https://www.npm.org/api/v2/package"
+  npmInstallPat: ""
+
+jobs:
+# Build
+- job: "Build"
+  pool:
+    vmImage: "vs2017-win2016"
+  steps:
+  - powershell: |
+      function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
+
+      # TODO We should only rebuild docs if files in the docs directory change since the last rebuild. 
+      # We could keep track of when the last rebuild was made by tagging the commit. Tags show up in the 
+      # release page of github though - https://github.community/t5/How-to-use-Git-and-GitHub/Tag-without-release/td-p/6255.
+      if($env:BUILD_SOURCEBRANCHNAME -ne 'master'){
+        "Pull request build, nothing to deploy"
+        exit
+      }
+      "`nCommit is a merge commit into master...`n"
+
+      # TODO configurable directory
+      cd docs
+
+      "Downloading DocFx:`n"
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+      Invoke-WebRequest https://github.com/JeremyTCD/docfx/releases/download/2.39.3/jering-docfx.zip -outfile "./jering-docfx.zip"
+      Expand-Archive "./jering-docfx.zip"
+      $env:Path += ";$pwd/jering-docfx/jering-docfx"
+      "    DocFx installed.`n"
+
+      "Installing Yarn:"      
+      npm install yarn --save-dev | Render-Body 
+      remove-item package-lock.json
+
+      "Restoring dependencies"
+      .\node_modules\.bin\yarn install | Render-Body
+
+      "Building site:"
+      .\node_modules\.bin\yarn run build-production | Render-Body
+
+      "Publishing site:"
+
+    displayName: "Build and publish docs"
