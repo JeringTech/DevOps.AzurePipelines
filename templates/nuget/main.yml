@@ -11,7 +11,7 @@ parameters:
   versionHeaderPattern: '^##[ \t]*\[(\d+\.\d+\.\d+[0-9A-Za-z-.]*)\]'
   # TODO allow for multiple endpoints
   nugetRestoreEndpoint: "https://www.nuget.org/api/v2/package"
-  nugetRestorePat: "$(nugetRestorePat)"
+  nugetRestorePat: ""
   nugetPushEndpoint: "https://www.nuget.org/api/v2/package"
   nugetPushPat: "$(nugetPushPat)"
   nugetDistUrl: "https://dist.nuget.org/win-x86-commandline/v4.7.1/nuget.exe"
