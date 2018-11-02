@@ -25,7 +25,8 @@ jobs:
 
       # Can't use chocolatey, the installation script errors out
       "Installing Yarn:"      
-      npm install yarn | Render-Body 
+      npm install yarn --save-dev | Render-Body 
+      remove-item package-lock.json
 
       "Restoring dependencies:"
       .\node_modules\.bin\yarn install | Render-Body
