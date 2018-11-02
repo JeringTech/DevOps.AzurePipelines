@@ -170,7 +170,7 @@ jobs:
         }
       }
     displayName: "Push"
-    condition: ne(variables['version'], '')
+    condition: and(succeeded(), ne(variables['version'], ''))
     # TODO When template parameters can be used in scripts, remove this - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
     env:
       BUILD_CONFIGURATION: ${{parameters.buildConfiguration}}

@@ -62,7 +62,7 @@ jobs:
         throw "An unexpected error occurred while attempting to publish package If it was an intermittent issue, do a manual rebuild of the same commit ($env:BUILD_SOURCEVERSION). Otherwise, rectify the issue and merge the changes into master to trigger a CI build."
       }
     displayName: "Publish"
-    condition: ne(variables['version'], '')
+    condition: and(succeeded(), ne(variables['version'], '')) # If previous tasks succeeded and a non empty version variable exists
   - template: "../shared/tag-commit.yml"
     parameters:
       githubPat: ${{parameters.githubPat}}
