@@ -19,7 +19,7 @@ steps:
 
     # Push to Github
     $uri = $env:BUILD_REPOSITORY_URI -replace "github.com", "$env:GITHUB_PAT@github.com"
-    "`nPushing tag to Github:"
+    "`nPushing tag to Github ($uri):"
     git push -u $uri $env:VERSION -q | Render-Body
 
     if($lastExitCode -eq 0){
