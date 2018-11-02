@@ -22,7 +22,7 @@ steps:
     "`nPushing tag to Github ($uri):"
     git push -u $uri $env:VERSION -q | Render-Body
 
-    if($lastExitCode -eq 0){
+    if($lastExitCode -ne 0){
       throw "An error occurred while attempting to push tag $env:VERSION to Github. If it was an intermittent issue, 
     do a manual rebuild of the same commit ($env:BUILD_SOURCEVERSION). Otherwise, manually tag commit $env:BUILD_SOURCEVERSION as $env:VERSION (packages generated from this commit have already been published) then
     rectify the issue and merge the changes into master to trigger a CI build."
