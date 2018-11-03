@@ -7,7 +7,7 @@ jobs:
 - job: ${{ parameters.name }}
   pool:
     vmImage: ${{ parameters.vmImage }}
-  dependsOn: "Build"
+  dependsOn: "NugetBuild"
   steps:
   # Skip checking out the default repository resource
   - checkout: "none"

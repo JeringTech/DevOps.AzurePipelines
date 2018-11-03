@@ -19,7 +19,7 @@ parameters:
 
 jobs:
 # Build
-- job: "Build"
+- job: "NugetBuild"
   pool:
     vmImage: "vs2017-win2016"
   steps:
@@ -56,8 +56,8 @@ jobs:
   - template: "../shared/publish-working-directory.yml"
 # Test
 - ${{if eq(parameters.runTests, 'true')}}:
-  - job: "WindowsTests"
-    dependsOn: "Build"
+  - job: "NugetWindowsTests"
+    dependsOn: "NugetBuild"
     pool:
       vmImage: "vs2017-win2016"
     steps:
@@ -98,23 +98,23 @@ jobs:
         testRunTitle: "WindowsTests"
   - template: "../nuget/test.yml"
     parameters:
-      name: "LinuxTests"
+      name: "NugetLinuxTests"
       vmImage: "ubuntu-16.04"
       buildConfiguration: ${{ parameters.buildConfiguration }}
   - template: "../nuget/test.yml"
     parameters:
-      name: "macOSTests"
+      name: "NugetMacOSTests"
       vmImage: "macOS-10.13"
       buildConfiguration: ${{ parameters.buildConfiguration }}
 # Deploy
-- job: "Deploy"
+- job: "NugetDeploy"
   dependsOn:
   - ${{if eq(parameters.runTests, 'true')}}:
-    - "WindowsTests"
-    - "LinuxTests"
-    - "macOSTests"
+    - "NugetWindowsTests"
+    - "NugetLinuxTests"
+    - "NugetMacOSTests"
   - ${{if ne(parameters.runTests, 'true')}}:
-    - "Build"
+    - "NugetBuild"
   steps:
   - checkout: "none"
   - template: "../shared/download-working-directory.yml"
