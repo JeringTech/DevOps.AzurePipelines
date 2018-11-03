@@ -141,7 +141,7 @@ jobs:
       "Pushing packages:"
       $packages = get-childitem src *.nupkg -Recurse
       foreach($package in $packages) {
-        $message = dotnet nuget push $package.fullname --source $env:NUGET_ENDPOINT --api-key $env:NUGET_PUSH_PAT
+        $message = dotnet nuget push $package.fullname --source $env:NUGET_PUSH_ENDPOINT --api-key $env:NUGET_PUSH_PAT
         $message | Render-body
 
         # 409 returned if a package with the provided ID and version already exists - https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#push-a-package
@@ -162,7 +162,7 @@ jobs:
     # TODO When template parameters can be used in scripts, remove this - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
     env:
       BUILD_CONFIGURATION: ${{parameters.buildConfiguration}}
-      NUGET_ENDPOINT: ${{parameters.nugetPushEndpoint}}
+      NUGET_PUSH_ENDPOINT: ${{parameters.nugetPushEndpoint}}
       NUGET_PUSH_PAT: ${{parameters.nugetPushPat}}
   - template: "../shared/tag-commit.yml"
     parameters:
