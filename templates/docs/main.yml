@@ -2,8 +2,9 @@
 # - Secret variables do not work for pull request builds, if we want to deploy from such builds, we need some other way to handle Git and Nuget personal access tokens
 
 parameters:
-  npmInstallEndpoint: "https://www.npm.org/api/v2/package"
-  npmInstallPat: ""
+  nugetRestoreEndpoint: "https://www.nuget.org/api/v2/package"
+  nugetRestorePat: ""
+  nugetDistUrl: "https://dist.nuget.org/win-x86-commandline/v4.7.1/nuget.exe"
 
 jobs:
 # Build
@@ -22,27 +23,46 @@ jobs:
         exit
       }
       "`nCommit is a merge commit into master...`n"
-
+      write-host "##vso[task.setvariable variable=buildAndDeploy]true"
       # TODO configurable directory
       cd docs
-
-      "Downloading DocFx:`n"
+    displayName: "Check build and deploy required"
+  - ${{if ne(parameters.nugetRestoreEndpoint, '')}}:
+    - template: "../shared/set-nuget-restore-endpoint.yml"
+      parameters: 
+        nugetRestoreEndpoint: ${{parameters.nugetRestoreEndpoint}}
+        nugetRestorePat: ${{parameters.nugetRestorePat}}
+        nugetDistUrl: ${{parameters.nugetDistUrl}}
+  - powershell: |
+      "Installing DocFx:`n"
       [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
       Invoke-WebRequest https://github.com/JeremyTCD/docfx/releases/download/2.39.3/jering-docfx.zip -outfile "./jering-docfx.zip"
+      if($lastExitCode -ne 0){
+        throw "An unexpected error occurred while installing DocFx. "
+      }
       Expand-Archive "./jering-docfx.zip"
       $env:Path += ";$pwd/jering-docfx/jering-docfx"
       "    DocFx installed.`n"
 
       "Installing Yarn:"      
-      npm install yarn --save-dev | Render-Body 
+      npm install yarn --save-dev | Render-Body
+      if($lastExitCode -ne 0){
+        throw "An unexpected error occurred while installing Yarn. "
+      }
       remove-item package-lock.json
 
-      "Restoring dependencies"
+      "Installing Mimo:"
       .\node_modules\.bin\yarn install | Render-Body
+      if($lastExitCode -ne 0){
+        throw "An unexpected error occurred while installing Mimo. "
+      }
 
       "Building site:"
       .\node_modules\.bin\yarn run build-production | Render-Body
+      if($lastExitCode -ne 0){
+        throw "An unexpected error occurred while building the site. "
+      }
 
       "Publishing site:"
-
+    condition: and(succeeded(), eq(variables['buildAndDeploy'], 'true'))
     displayName: "Build and publish docs"
