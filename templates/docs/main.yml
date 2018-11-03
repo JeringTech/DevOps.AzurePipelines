@@ -34,12 +34,10 @@ jobs:
         nugetRestorePat: ${{parameters.nugetRestorePat}}
         nugetDistUrl: ${{parameters.nugetDistUrl}}
   - powershell: |
+      # TODO properly detect if installation fails
       "Installing DocFx:`n"
       [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
       Invoke-WebRequest https://github.com/JeremyTCD/docfx/releases/download/2.39.3/jering-docfx.zip -outfile "./jering-docfx.zip"
-      if($lastExitCode -ne 0){
-        throw "An unexpected error occurred while installing DocFx. "
-      }
       Expand-Archive "./jering-docfx.zip"
       $env:Path += ";$pwd/jering-docfx/jering-docfx"
       "    DocFx installed.`n"
