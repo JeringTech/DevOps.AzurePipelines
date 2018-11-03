@@ -139,7 +139,7 @@ jobs:
         $message | Render-body
 
         # 409 returned if a package with the provided ID and version already exists - https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#push-a-package
-        if($lastExitCode -ne 0{
+        if($lastExitCode -ne 0){
           if($message -contains ' 409 '){
             # If error occurred because package already exists, allow pipeline to continue
             "$($package.fullname) already exists..."
