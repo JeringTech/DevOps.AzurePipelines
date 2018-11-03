@@ -43,7 +43,7 @@ jobs:
   steps:
   - checkout: "none"
   - template: "../shared/download-working-directory.yml"
-  - template: "../shared/changelog-versioning.yml"
+  - template: "../shared/find-new-version.yml"
     parameters:
       changelogPath: ${{parameters.changelogPath}}
       versionHeaderPattern: ${{parameters.versionHeaderPattern}}
