@@ -18,7 +18,7 @@ steps:
     git tag -a $env:VERSION -m "Azure build ID: $env:BUILDID" | RENDER-Body
 
     # Push to Github
-    $uri = $env:BUILD_REPOSITORY_URI -replace "github.com", "$env:GITHUB_PAT@github.com"
+    $uri = $env:BUILD_REPOSITORY_URI -replace "github.com", "${{parameters.githubPat}}@github.com"
     "`nPushing tag to Github ($uri):"
     git push -u $uri $env:VERSION -q | Render-Body
 
@@ -30,5 +30,3 @@ steps:
     "    Tag $env:VERSION pushed to Github."
   condition: and(succeeded(), ne(variables['version'], '')) # If previous tasks succeeded and a non empty version variable exists
   displayName: "Tag commit"
-  env: 
-    GITHUB_PAT: ${{parameters.githubPat}}

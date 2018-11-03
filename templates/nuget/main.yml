@@ -41,7 +41,7 @@ jobs:
       "Building solution:"
       dotnet build --no-restore --configuration Release -p:CopyLocalLockFileAssemblies=true | Render-Body
 
-      if($env:RUN_INHERIT_DOC -eq 'true'){
+      if("${{parameters.runInheritDoc}}" -eq 'true'){
         "Installing InheritDoc:"
         dotnet tool install InheritDocTool --tool-path . | Render-Body # Install to current dir https://github.com/dotnet/cli/issues/8368
 
@@ -53,8 +53,6 @@ jobs:
         remove-item .\.store -recurse
       }
     displayName: "Build"
-    env:
-      RUN_INHERIT_DOC: ${{parameters.runInheritDoc}}
   - template: "../shared/publish-working-directory.yml"
 # Test
 - ${{if eq(parameters.runTests, 'true')}}:
@@ -74,7 +72,7 @@ jobs:
         $env:NUGET_PACKAGES=$env:SYSTEM_DEFAULTWORKINGDIRECTORY + "/packages"
 
         "Running tests:"
-        dotnet test --no-build --no-restore --configuration Release --logger trx --results-directory $(Agent.TempDirectory) -p:CollectCoverage=$env:RUN_CODE_COVERAGE -p:CoverletOutputFormat=cobertura | Render-Body
+        dotnet test --no-build --no-restore --configuration Release --logger trx --results-directory $(Agent.TempDirectory) -p:CollectCoverage="${{parameters.runCodeCoverage}}" -p:CoverletOutputFormat=cobertura | Render-Body
 
         $reports = get-childitem coverage.cobertura.xml -Recurse | foreach{$_.fullname}
         # No reports
@@ -90,12 +88,8 @@ jobs:
         choco install codecov --yes --no-progress --cache-location=. | Render-Body 
 
         "Publishing to Codecov:"
-        codecov -f $reports -t "$env:CODECOV_KEY" --required | Render-Body # Exit code 1 if uploading of report fails, otherwise it may fail silently
+        codecov -f $reports -t "${{parameters.codecovKey}}" --required | Render-Body # Exit code 1 if uploading of report fails, otherwise it may fail silently
       displayName: "Test"
-      #TODO remove once parameters can be used directly in scripts
-      env:
-        CODECOV_KEY: ${{parameters.codecovKey}}
-        RUN_CODE_COVERAGE: ${{parameters.runCodeCoverage}}
     - task: "PublishTestResults@2"
       inputs:
         testResultsFormat: "VSTest"
@@ -135,13 +129,13 @@ jobs:
       $env:NUGET_PACKAGES=$env:SYSTEM_DEFAULTWORKINGDIRECTORY + "/packages"
 
       "Packing Nuget package(s):"
-      dotnet pack --no-restore --no-build --configuration $env:BUILD_CONFIGURATION -p:PackageVersion=$env:VERSION | Render-Body
+      dotnet pack --no-restore --no-build --configuration "${{parameters.buildConfiguration}}" -p:PackageVersion=$env:VERSION | Render-Body
 
       # Push using endpoint and api key
       "Pushing packages:"
       $packages = get-childitem src *.nupkg -Recurse
       foreach($package in $packages) {
-        $message = dotnet nuget push $package.fullname --source $env:NUGET_PUSH_ENDPOINT --api-key $env:NUGET_PUSH_PAT
+        $message = dotnet nuget push $package.fullname --source "${{parameters.nugetPushEndpoint}}" --api-key "${{parameters.nugetPushPat}}"
         $message | Render-body
 
         # 409 returned if a package with the provided ID and version already exists - https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#push-a-package
@@ -159,11 +153,6 @@ jobs:
       exit 0
     displayName: "Push"
     condition: and(succeeded(), ne(variables['version'], ''))
-    # TODO When template parameters can be used in scripts, remove this - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
-    env:
-      BUILD_CONFIGURATION: ${{parameters.buildConfiguration}}
-      NUGET_PUSH_ENDPOINT: ${{parameters.nugetPushEndpoint}}
-      NUGET_PUSH_PAT: ${{parameters.nugetPushPat}}
   - template: "../shared/tag-commit.yml"
     parameters:
       githubPat: ${{parameters.githubPat}}

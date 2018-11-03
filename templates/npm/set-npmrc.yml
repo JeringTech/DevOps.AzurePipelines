@@ -4,16 +4,16 @@ parameters:
 
 steps:
 - powershell: |
-    "Setting registry:`n"
-    set-content .npmrc "registry=$env:ENDPOINT"
-    "    Registry set to $env:ENDPOINT.`n"
+    $endpoint = "${{parameters.endpoint}}"
+    $pat = "${{parameters.pat}}"
 
-    if($env:PAT){
+    "Setting registry:`n"
+    set-content .npmrc "registry=$endpoint"
+    "    Registry set to $endpoint.`n"
+
+    if($pat){
       "Setting registry PAT..."
-      add-content .npmrc "$($env:ENDPOINT -replace 'https:', ''):_authToken=$env:PAT"
+      add-content .npmrc "$($endpoint -replace 'https:', ''):_authToken=$pat"
       add-content .npmrc "always-auth=true"
     }
   displayName: "Set registry"
-  env:
-    ENDPOINT: ${{parameters.endpoint}}
-    PAT: ${{parameters.pat}}

@@ -1,6 +1,6 @@
 parameters:
-  changelogPath: "CHANGELOG.md"
-  versionHeaderPattern: '^##[ \t]*\[(\d+\.\d+\.\d+[0-9A-Za-z-.]*)\]'
+  changelogPath: ""
+  versionHeaderPattern: ""
 
 # Outputs a job scoped variable named version if a new version is found
 steps:
@@ -18,7 +18,7 @@ steps:
 
     # Find new version
     "Changelog versions:"
-    $changelogVersions = get-content $env:CHANGELOG_PATH | foreach{if($_ -match $env:VERSION_HEADER_PATTERN){$matches[1]}}
+    $changelogVersions = get-content "${{parameters.changelogPath}}" | foreach{if($_ -match "${{parameters.versionHeaderPattern}}"){$matches[1]}}
     $changelogVersions | Render-Body
     
     "Git tags:"
@@ -38,6 +38,3 @@ steps:
     "New version `"$newVersion`" found...`n"
     write-host "##vso[task.setvariable variable=version]$newVersion"
   displayName: "Changelog versioning"
-  env:
-    CHANGELOG_PATH: ${{parameters.changelogPath}}
-    VERSION_HEADER_PATTERN: ${{parameters.versionHeaderPattern}}

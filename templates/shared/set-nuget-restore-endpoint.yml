@@ -7,10 +7,13 @@ steps:
 - powershell: |
     function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
+    $nugetRestoreEndpoint = "${{parameters.nugetRestoreEndpoint}}"
+    $nugetRestorePat = "${{parameters.nugetRestorePat}}"
+
     $configFilePath = $env:SYSTEM_DEFAULTWORKINGDIRECTORY + "/NuGet.Config"
 
     "Installing Nuget:`n"
-    Invoke-WebRequest $env:NUGET_DIST_URL -outfile nuget.exe | Render-Body
+    Invoke-WebRequest "${{parameters.nugetDistUrl}}" -outfile nuget.exe | Render-Body
     "    Nuget v4.7.1 installed.`n"
 
     # Use File.WriteAllLines since Nuget errors out if file has "UTF8 with BOM" encoding
@@ -19,16 +22,12 @@ steps:
     "    Empty NuGet.Config generated.`n"
 
     $sourceName = 'nugetRestoreEndpoint'
-    if($env:NUGET_RESTORE_PAT){
+    if($nugetRestorePat){
       "Adding source with PAT:"          
-      .\nuget.exe sources add -Name $sourceName -Source $env:NUGET_RESTORE_ENDPOINT -Username 'placeholder' -Password $env:NUGET_RESTORE_PAT -configfile $configFilePath -StorePasswordInClearText | Render-Body
+      .\nuget.exe sources add -Name $sourceName -Source $nugetRestoreEndpoint -Username 'placeholder' -Password $nugetRestorePat -configfile $configFilePath -StorePasswordInClearText | Render-Body
     }
     else { 
       "Adding source:"
-      .\nuget.exe sources add -Name $sourceName -Source $env:NUGET_RESTORE_ENDPOINT -configfile $configFilePath | Render-Body
+      .\nuget.exe sources add -Name $sourceName -Source $nugetRestoreEndpoint -configfile $configFilePath | Render-Body
     }
   displayName: "Set Nuget restore endpoint"
-  env:
-    NUGET_DIST_URL: ${{parameters.nugetDistUrl}}
-    NUGET_RESTORE_ENDPOINT: ${{parameters.nugetRestoreEndpoint}}
-    NUGET_RESTORE_PAT: ${{parameters.nugetRestorePat}}
