@@ -130,6 +130,9 @@ jobs:
 
       "Packing Nuget package(s):"
       dotnet pack --no-restore --no-build --configuration "${{parameters.buildConfiguration}}" -p:PackageVersion=$env:VERSION | Render-Body
+      if($lastExitCode -ne 0){
+        throw "Failed to pack packages. A project probably isn't properly configured."
+      }
 
       # Push using endpoint and api key
       "Pushing packages:"
