@@ -14,9 +14,7 @@ https://docs.microsoft.com/en-us/azure/devops/pipelines/process/templates?view=v
 ## Add Instructions For
 - Symbols using source link.
 - Allowing dotnet test from solution directory.
-- Enabling xml documentation with <GenerateDocumentationFile>true</GenerateDocumentationFile>
-
-
-## Notes
-nuget-package.yml's last step is a script task. Note how the entire script is inlined. We do it this way because Azure Pipeline's [repositories feature](https://docs.microsoft.com/en-us/azure/devops/pipelines/process/templates?view=vsts#using-other-repositories)
-doesn't allow for standalone scripts.
+- Enabling xml documentation
+- Adding an icon for nuget.org
+  - PackageIconUrl
+  - https://github.com/NuGet/Home/issues/352
