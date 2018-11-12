@@ -4,9 +4,9 @@
 parameters:
   changelogPath: "CHANGELOG.md"
   versionHeaderPattern: '^##[ \t]*\[(\d+\.\d+\.\d+[0-9A-Za-z-.]*)\]'
-  npmInstallEndpoint: "https://registry.npmjs.org/"
+  npmInstallEndpoint: ""
   npmInstallPat: ""
-  npmPublishEndpoint: "https://registry.npmjs.org/"
+  npmPublishEndpoint: ""
   npmPublishPat: "$(npmPublishPat)"
   githubPat: "$(githubPat)"
 
@@ -16,10 +16,11 @@ jobs:
   pool:
     vmImage: "vs2017-win2016"
   steps:
-  - template: set-npmrc.yml
-    parameters:
-      endpoint: ${{parameters.npmInstallEndpoint}}
-      pat: ${{parameters.npmInstallPat}}
+  - ${{if ne(parameters.npmInstallEndpoint, '')}}:
+    - template: set-npmrc.yml
+      parameters:
+        endpoint: ${{parameters.npmInstallEndpoint}}
+        pat: ${{parameters.npmInstallPat}}
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 

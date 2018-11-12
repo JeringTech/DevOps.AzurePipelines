@@ -5,6 +5,9 @@ parameters:
 steps:
 - powershell: |
     $endpoint = "${{parameters.endpoint}}"
+    if(-not($endpoint)){
+      $endpoint = "https://registry.npmjs.org/"
+    }
     $pat = "${{parameters.pat}}"
 
     "Setting registry:`n"
