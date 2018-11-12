@@ -26,13 +26,22 @@ jobs:
       # Can't use chocolatey, the installation script errors out
       "Installing Yarn:"      
       npm install yarn --save-dev | Render-Body 
+      if($lastExitCode -ne 0) {
+        throw "An unexpected error occurred while attempting to install yarn. If it was an intermittent issue, do a manual rebuild of the same commit."
+      }
       remove-item package-lock.json
 
       "Restoring dependencies:"
       .\node_modules\.bin\yarn install | Render-Body
+      if($lastExitCode -ne 0) {
+        throw "An unexpected error occurred while attempting to restore dependencies. Ensure that package.json is properly configured. If it was an intermittent issue, do a manual rebuild of the same commit."
+      }
 
       "Building project:"
       .\node_modules\.bin\yarn run build | Render-Body
+      if($lastExitCode -ne 0) {
+        throw "An unexpected error occurred while attempting to build the project. Ensure that the build script in package.json is valid. If it was an intermittent issue, do a manual rebuild of the same commit."
+      }
     displayName: "Build"
   - template: "../shared/publish-working-directory.yml"
 # TODO Test
