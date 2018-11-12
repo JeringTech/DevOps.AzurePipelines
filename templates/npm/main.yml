@@ -25,7 +25,7 @@ jobs:
 
       # Can't use chocolatey, the installation script errors out
       "Installing Yarn:"      
-      npm install yarn --save-dev | Render-Body 
+      npm install yarn@1.12.3 --save-dev | Render-Body 
       if($lastExitCode -ne 0) {
         throw "An unexpected error occurred while attempting to install yarn. If it was an intermittent issue, do a manual rebuild of the same commit."
       }
