@@ -3,7 +3,15 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 [The Semantic Versioning Lifecycle](https://www.jeremytcd.com/articles/the-semantic-versioning-lifecycle)
 for an overview of semantic versioning.
 
-## [Unreleased](https://github.com/JeringTech/DevOps.AzurePipelines/compare/0.2.0...HEAD)
+## [Unreleased](https://github.com/JeringTech/DevOps.AzurePipelines/compare/0.3.0...HEAD)
+
+## [0.3.0](https://github.com/JeringTech/DevOps.AzurePipelines/compare/0.2.0...0.3.0) - Nov 13, 2018
+### Changes
+- Removed docs/main.yml's `nugetRestoreEndpoint` parameter's default value.
+- Refactoring
+    - Inlined references to the `buildConfiguration` parameter in nuget/main.yml.
+    - shared/set-nuget-restore-endpoint.yml now uses a powershell array to dynamically set arguments.
+- Target framework can now be specified for test run by nuget/test.yml.
 
 ## [0.2.0](https://github.com/JeringTech/DevOps.AzurePipelines/compare/0.1.0...0.2.0) - Nov 13, 2018
 ### Changes
