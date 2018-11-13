@@ -13,12 +13,18 @@ steps:
     $configFilePath = $env:SYSTEM_DEFAULTWORKINGDIRECTORY + "/NuGet.Config"
 
     "Installing Nuget:`n"
-    Invoke-WebRequest "${{parameters.nugetDistUrl}}" -outfile nuget.exe | Render-Body
+    Invoke-WebRequest "${{parameters.nugetDistUrl}}" -outfile nuget.exe
+    if(-not($?)){
+      throw "Failed to install Nuget."
+    }
     "    Nuget v4.7.1 installed.`n"
 
     # Use File.WriteAllLines since Nuget errors out if file has "UTF8 with BOM" encoding
     "Generating empty NuGet.Config:`n"
     [IO.File]::WriteAllLines($configFilePath, '<?xml version="1.0" encoding="utf-8"?><configuration><packageSources><clear /></packageSources></configuration>')
+    if(-not($?)){
+      throw "Failed to create empty NuGet.Config."
+    }
     "    Empty NuGet.Config generated.`n"
 
     $sourceName = 'nugetRestoreEndpoint'
@@ -29,5 +35,8 @@ steps:
     else { 
       "Adding source:"
       .\nuget.exe sources add -Name $sourceName -Source $nugetRestoreEndpoint -configfile $configFilePath | Render-Body
+    }
+    if($lastExitCode -ne 0){
+      throw "Failed to add source to NuGet.Config."
     }
   displayName: "Set Nuget restore endpoint"

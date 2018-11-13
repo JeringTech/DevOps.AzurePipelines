@@ -1,6 +1,3 @@
-# Notes
-# - Secret variables do not work for pull request builds, if we want to deploy from such builds, we need some other way to handle Git and Nuget personal access tokens
-
 parameters:
   nugetRestoreEndpoint: "https://www.nuget.org/api/v2/package"
   nugetRestorePat: ""
@@ -40,6 +37,10 @@ jobs:
       "Installing DocFx:`n"
       [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
       Invoke-WebRequest https://github.com/JeremyTCD/docfx/releases/download/2.39.5/jering-docfx.zip -outfile "./jering-docfx.zip"
+      if(-not($?)){
+        throw "Failed to download DocFx."
+      }
+
       Expand-Archive "./jering-docfx.zip"
       $env:Path += ";$pwd/jering-docfx/jering-docfx"
       "    DocFx installed.`n"
@@ -47,20 +48,20 @@ jobs:
       "Installing Yarn:"      
       npm install yarn --save-dev | Render-Body
       if($lastExitCode -ne 0){
-        throw "An unexpected error occurred while installing Yarn. "
+        throw "Failed to install Yarn."
       }
       remove-item package-lock.json
 
       "Installing Mimo:"
       .\node_modules\.bin\yarn install | Render-Body
       if($lastExitCode -ne 0){
-        throw "An unexpected error occurred while installing Mimo. "
+        throw "Failed to install Mimo."
       }
 
       "Building site:"
       .\node_modules\.bin\yarn run build-production | Render-Body
       if($lastExitCode -ne 0){
-        throw "An unexpected error occurred while building the site. "
+        throw "Failed to build site."
       }
 
       # Netlify is more flexible than Github pages
@@ -70,11 +71,14 @@ jobs:
       "Installing Netlify:"
       .\node_modules\.bin\yarn add netlify-cli --save-dev | Render-Body
       if($lastExitCode -ne 0){
-        throw "An unexpected error occurred while installing Netlify. "
+        throw "Failed to install Netlify."
       }
       
       "Publishing site:"
       .\node_modules\.bin\netlify deploy --prod --dir=bin/_site | Render-Body
+      if($lastExitCode -ne 0){
+        throw "Failed to deploy site to Netlify."
+      }
     condition: and(succeeded(), eq(variables['buildAndDeploy'], 'true'))
     displayName: "Build and publish docs"
     env:

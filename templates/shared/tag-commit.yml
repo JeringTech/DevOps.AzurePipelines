@@ -8,14 +8,23 @@ steps:
     # Create new tag
     "Tagging commit:"      
     $commitAuthorName = git show --pretty="%an" --quiet
+    if($lastExitCode -ne 0){
+      throw "Failed to retrieve author name from commit."
+    }
     "    Commit author name: " + $commitAuthorName
     git config user.name $commitAuthorName
     
     $commitAuthorEmail = git show --pretty="%ae" --quiet
+    if($lastExitCode -ne 0){
+      throw "Failed to retrieve author email from commit."
+    }
     "    Commit author email: " + $commitAuthorEmail
     git config user.email $commitAuthorEmail
 
     git tag -a $env:VERSION -m "Azure build ID: $env:BUILDID" | RENDER-Body
+    if($lastExitCode -ne 0){
+      throw "Failed to tag commit."
+    }
 
     # Push to Github
     $uri = $env:BUILD_REPOSITORY_URI -replace "github.com", "${{parameters.githubPat}}@github.com"

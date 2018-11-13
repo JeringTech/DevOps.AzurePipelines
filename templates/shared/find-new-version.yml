@@ -19,10 +19,16 @@ steps:
     # Find new version
     "Changelog versions:"
     $changelogVersions = get-content "${{parameters.changelogPath}}" | foreach{if($_ -match "${{parameters.versionHeaderPattern}}"){$matches[1]}}
+    if(-not($?)){
+      throw "Failed to read changelog."
+    }
     $changelogVersions | Render-Body
     
     "Git tags:"
     $gitTags = git tag -l
+    if($lastExitCode -ne 0){
+      throw "Failed to retrieve existing Git tags."
+    }
     $gitTags | Render-Body
 
     $newVersion = $changelogVersions | where{-not($gitTags -contains $_)}

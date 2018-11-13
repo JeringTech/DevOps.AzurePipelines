@@ -1,6 +1,3 @@
-# Notes
-# - Secret variables do not work for pull request builds, if we want to deploy from such builds, we need some other way to handle Git and Nuget personal access tokens
-
 parameters:
   buildConfiguration: "Release"
   runInheritDoc: true
@@ -37,16 +34,28 @@ jobs:
 
       "Restoring packages:"
       dotnet restore | Render-Body
+      if($lastExitCode -ne 0){
+        throw "Failed to restore dependencies."
+      }
 
       "Building solution:"
       dotnet build --no-restore --configuration Release -p:CopyLocalLockFileAssemblies=true | Render-Body
+      if($lastExitCode -ne 0){
+        throw "Failed to build solution."
+      }
 
       if("${{parameters.runInheritDoc}}" -eq 'true'){
         "Installing InheritDoc:"
         dotnet tool install InheritDocTool --tool-path . | Render-Body # Install to current dir https://github.com/dotnet/cli/issues/8368
+        if($lastExitCode -ne 0){
+          throw "Failed to install InheritDoc."
+        }
 
         "Running InheritDoc:"
         .\InheritDoc.exe -b src -o | Render-Body
+        if($lastExitCode -ne 0){
+          throw "An error occurred when running InheritDoc."
+        }
 
         # We won't be needing InheritDoc again in the pipeline
         remove-item .\InheritDoc.exe
@@ -73,6 +82,9 @@ jobs:
 
         "Running tests:"
         dotnet test --no-build --no-restore --configuration Release --logger trx --results-directory $(Agent.TempDirectory) -p:CollectCoverage="${{parameters.runCodeCoverage}}" -p:CoverletOutputFormat=cobertura | Render-Body
+        if($lastExitCode -ne 0){
+          throw "Failed to run tests or some tests failed."
+        }
 
         $reports = get-childitem coverage.cobertura.xml -Recurse | foreach{$_.fullname}
         # No reports
@@ -86,9 +98,15 @@ jobs:
 
         "Installing Codecov:"      
         choco install codecov --yes --no-progress --cache-location=. | Render-Body 
+        if($lastExitCode -ne 0){
+          throw "Failed to install Codecov."
+        }
 
         "Publishing to Codecov:"
         codecov -f $reports -t "${{parameters.codecovKey}}" --required | Render-Body # Exit code 1 if uploading of report fails, otherwise it may fail silently
+        if($lastExitCode -ne 0){
+          throw "Failed to upload code coverage reports to Codecov."
+        }
       displayName: "Test"
     - task: "PublishTestResults@2"
       inputs:
