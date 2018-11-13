@@ -39,7 +39,7 @@ jobs:
       }
 
       "Building solution:"
-      dotnet build --no-restore --configuration Release -p:CopyLocalLockFileAssemblies=true | Render-Body
+      dotnet build --no-restore --configuration ${{parameters.buildConfiguration}} -p:CopyLocalLockFileAssemblies=true | Render-Body
       if($lastExitCode -ne 0){
         throw "Failed to build solution."
       }
@@ -81,7 +81,7 @@ jobs:
         $env:NUGET_PACKAGES=$env:SYSTEM_DEFAULTWORKINGDIRECTORY + "/packages"
 
         "Running tests:"
-        dotnet test --no-build --no-restore --configuration Release --logger trx --results-directory $(Agent.TempDirectory) -p:CollectCoverage="${{parameters.runCodeCoverage}}" -p:CoverletOutputFormat=cobertura | Render-Body
+        dotnet test --no-build --no-restore --configuration ${{parameters.buildConfiguration}} --logger trx --results-directory $(Agent.TempDirectory) -p:CollectCoverage="${{parameters.runCodeCoverage}}" -p:CoverletOutputFormat=cobertura | Render-Body
         if($lastExitCode -ne 0){
           throw "Failed to run tests or some tests failed."
         }
