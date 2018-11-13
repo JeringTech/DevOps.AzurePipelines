@@ -2,6 +2,7 @@ parameters:
   name: ""
   vmImage: ""
   buildConfiguration: ""
+  targetFramework: ""
 
 jobs:
 - job: ${{ parameters.name }}
@@ -17,9 +18,9 @@ jobs:
     inputs:
       command: "test"
       projects: "test/**/*.csproj"
-      # TODO not sure why this doesn't work, possible - https://github.com/Microsoft/azure-pipelines-agent/issues/1772
-      # arguments: --no-restore --no-build --configuration ${{parameters.buildConfiguration}}
-      arguments: "--no-restore --no-build --configuration Release"
+      # TODO Figure out how to run .Net Framework test assemblies on Linux/macOS using mono. For now, only allow target framework to be specified so that
+      # we can run only .Net Core test assemblies on Linux/macOS.
+      arguments: "--framework ${{ parameters.targetFramework }} --no-restore --no-build --configuration ${{parameters.buildConfiguration}}"
     # Skip dotnet first time experience
     env:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true

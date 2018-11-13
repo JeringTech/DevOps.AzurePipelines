@@ -13,6 +13,7 @@ parameters:
   nugetPushPat: "$(nugetPushPat)"
   nugetDistUrl: "https://dist.nuget.org/win-x86-commandline/v4.7.1/nuget.exe"
   githubPat: "$(githubPat)"
+  nonWindowsTestsTargetFramework: "netcoreapp2.1"
 
 jobs:
 # Build
@@ -119,11 +120,13 @@ jobs:
       name: "NugetLinuxTests"
       vmImage: "ubuntu-16.04"
       buildConfiguration: ${{ parameters.buildConfiguration }}
+      targetFramework: ${{ parameters.nonWindowsTestsTargetFramework }}
   - template: "../nuget/test.yml"
     parameters:
       name: "NugetMacOSTests"
       vmImage: "macOS-10.13"
       buildConfiguration: ${{ parameters.buildConfiguration }}
+      targetFramework: ${{ parameters.nonWindowsTestsTargetFramework }}
 # Deploy
 - job: "NugetDeploy"
   dependsOn:
