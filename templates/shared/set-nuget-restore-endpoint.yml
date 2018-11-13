@@ -7,7 +7,6 @@ steps:
 - powershell: |
     function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
-    $nugetRestoreEndpoint = "${{parameters.nugetRestoreEndpoint}}"
     $nugetRestorePat = "${{parameters.nugetRestorePat}}"
 
     $configFilePath = $env:SYSTEM_DEFAULTWORKINGDIRECTORY + "/NuGet.Config"
@@ -27,15 +26,15 @@ steps:
     }
     "    Empty NuGet.Config generated.`n"
 
-    $sourceName = 'nugetRestoreEndpoint'
+    $arguments = @("sources", "add", "-Name", "nugetRestoreEndpoint", "-Source", "${{parameters.nugetRestoreEndpoint}}", "-config", $configFilePath)
     if($nugetRestorePat){
+      $arguments += @("-Username", "placeholder", "-Password", $nugetRestorePat, "-StorePasswordInClearText")
       "Adding source with PAT:"          
-      .\nuget.exe sources add -Name $sourceName -Source $nugetRestoreEndpoint -Username 'placeholder' -Password $nugetRestorePat -configfile $configFilePath -StorePasswordInClearText | Render-Body
     }
     else { 
       "Adding source:"
-      .\nuget.exe sources add -Name $sourceName -Source $nugetRestoreEndpoint -configfile $configFilePath | Render-Body
     }
+    .\nuget.exe $arguments | Render-Body
     if($lastExitCode -ne 0){
       throw "Failed to add source to NuGet.Config."
     }
