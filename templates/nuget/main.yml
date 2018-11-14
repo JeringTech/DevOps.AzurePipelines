@@ -159,7 +159,12 @@ jobs:
       "Pushing packages:"
       $packages = get-childitem src *.nupkg -Recurse
       foreach($package in $packages) {
-        $message = dotnet nuget push $package.fullname --source "${{parameters.nugetPushEndpoint}}" --api-key "${{parameters.nugetPushPat}}"
+        $arguments = @("nuget", "push", $package.fullname, "--api-key", "${{parameters.nugetPushPat}}")
+        if("${{parameters.nugetPushEndpoint}}"){
+          $arguments += @("--source", "${{parameters.nugetPushEndpoint}}")
+        }
+
+        $message = dotnet $arguments
         $message | Render-body
 
         # 409 returned if a package with the provided ID and version already exists - https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#push-a-package
