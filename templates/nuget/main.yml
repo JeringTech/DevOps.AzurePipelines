@@ -9,7 +9,7 @@ parameters:
   # TODO allow for multiple restore endpoints
   nugetRestoreEndpoint: ""
   nugetRestorePat: ""
-  nugetPushEndpoint: ""
+  nugetPushEndpoint: "https://www.nuget.org/api/v2/package"
   nugetPushPat: "$(nugetPushPat)"
   nugetDistUrl: "https://dist.nuget.org/win-x86-commandline/v4.7.1/nuget.exe"
   githubPat: "$(githubPat)"
@@ -159,12 +159,7 @@ jobs:
       "Pushing packages:"
       $packages = get-childitem src *.nupkg -Recurse
       foreach($package in $packages) {
-        $arguments = @("nuget", "push", $package.fullname, "--api-key", "${{parameters.nugetPushPat}}")
-        if("${{parameters.nugetPushEndpoint}}"){
-          $arguments += @("--source", "${{parameters.nugetPushEndpoint}}")
-        }
-
-        $message = dotnet $arguments
+        $message = dotnet nuget push $package.fullname --source "${{parameters.nugetPushEndpoint}}" --api-key "${{parameters.nugetPushPat}}"
         $message | Render-body
 
         # 409 returned if a package with the provided ID and version already exists - https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#push-a-package
