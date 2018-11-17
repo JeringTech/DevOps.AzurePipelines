@@ -1,6 +1,6 @@
 parameters:
   buildConfiguration: ""
-  targetFramework: ""
+  extraArguments: ""
   runCodeCoverage: "false"
 
 steps:
@@ -11,9 +11,7 @@ steps:
   inputs:
     command: "test"
     projects: "test/**/*.csproj"
-    # TODO Figure out how to run .Net Framework test assemblies on Linux/macOS using mono. For now, only allow target framework to be specified so that
-    # we can run only .Net Core test assemblies on Linux/macOS.
-    arguments: "--framework ${{ parameters.targetFramework }} --no-restore --no-build --configuration ${{parameters.buildConfiguration}} -p:CollectCoverage=${{parameters.runCodeCoverage}} -p:CoverletOutputFormat=cobertura"
+    arguments: "--no-restore --no-build --configuration ${{parameters.buildConfiguration}} -p:CollectCoverage=${{parameters.runCodeCoverage}} -p:CoverletOutputFormat=cobertura ${{ parameters.extraArguments }}"
   # Skip dotnet first time experience
   env:
     DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true

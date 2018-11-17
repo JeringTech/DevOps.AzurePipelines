@@ -110,7 +110,9 @@ jobs:
     - template: "test.yml"
       parameters:
         buildConfiguration: ${{ parameters.buildConfiguration }}
-        targetFramework: ${{ parameters.nonWindowsTestsTargetFramework }}
+        # TODO Figure out how to run .Net Framework test assemblies on Linux/macOS using mono. For now, only allow target framework to be specified so that
+        # we can run only .Net Core test assemblies on Linux/macOS.
+        extraArguments: "--framework ${{ parameters.nonWindowsTestsTargetFramework }}"
   - job: "NugetMacOSTests"
     dependsOn: "NugetBuild"
     pool:
@@ -119,7 +121,7 @@ jobs:
     - template: "test.yml"
       parameters:
         buildConfiguration: ${{ parameters.buildConfiguration }}
-        targetFramework: ${{ parameters.nonWindowsTestsTargetFramework }}
+        extraArguments: "--framework ${{ parameters.nonWindowsTestsTargetFramework }}"
 # Deploy
 - job: "NugetDeploy"
   dependsOn:
