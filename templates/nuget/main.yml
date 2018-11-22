@@ -142,6 +142,7 @@ jobs:
       changelogPath: ${{parameters.changelogPath}}
       releaseVersionHeaderPattern: ${{parameters.releaseVersionHeaderPattern}}
       unreleasedVersionHeaderPattern: ${{parameters.unreleasedVersionHeaderPattern}}
+      findCiVersion: ${{ne(parameters.nugetCiPushEndpoint, '')}}
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 

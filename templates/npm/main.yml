@@ -58,6 +58,7 @@ jobs:
       changelogPath: ${{parameters.changelogPath}}
       releaseVersionHeaderPattern: ${{parameters.releaseVersionHeaderPattern}}
       unreleasedVersionHeaderPattern: ${{parameters.unreleasedVersionHeaderPattern}}
+      findCiVersion: ${{ne(parameters.nugetCiPushEndpoint, '')}}
   - powershell: |
       $npmPublishEndpoint = if($env:NEWVERSIONISRELEASE){"${{parameters.npmReleasePublishEndpoint}}"}else{"${{parameters.npmCiPublishEndpoint}}"}
       $npmPublishPat = if($env:NEWVERSIONISRELEASE){"${{parameters.npmReleasePublishPat}}"}else{"${{parameters.npmCiPublishPat}}"}

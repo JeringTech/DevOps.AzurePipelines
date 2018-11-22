@@ -2,6 +2,7 @@ parameters:
   changelogPath: ""
   releaseVersionHeaderPattern: ""
   unreleasedVersionHeaderPattern: ""
+  findCiVersion: ""
 
 # Outputs a job scoped variable named version if a new version is found
 steps:
@@ -23,13 +24,14 @@ steps:
     $rVs=get-content "${{parameters.changelogPath}}" | 
       foreach {
         if($_ -match "${{parameters.releaseVersionHeaderPattern}}"){$matches[1]}
-        elseif ($_ -match "${{parameters.unreleasedVersionHeaderPattern}}"){$uV=$matches[1]}
+        elseif (($findCiVersion -eq 'true') -and ($_ -match "${{parameters.unreleasedVersionHeaderPattern}}")){$uV=$matches[1]}
       }
     if(-not($?)){throw "Failed to read changelog."}
     $rVs | R-B
     
     "Changelog unreleased version:"
-    $uV | R-B
+    if($findCiVersion -eq 'true'){$uV | R-B}
+    else{"    Publishing of CI build artifacts disabled."}
 
     "Git tags:"
     $tags=git tag -l
