@@ -1,10 +1,13 @@
 parameters:
   changelogPath: "CHANGELOG.md"
-  versionHeaderPattern: '^##[ \t]*\[(\d+\.\d+\.\d+[0-9A-Za-z-.]*)\]'
+  releaseVersionHeaderPattern: '^##[ \t]*\[(\d+\.\d+\.\d+[0-9A-Za-z-.]*)\]'
+  unreleasedVersionHeaderPattern: '^##[ \t]*\[Unreleased[ \t]*\((\d+\.\d+\.\d+[0-9A-Za-z-.]*)\)\]'
   npmInstallEndpoint: ""
   npmInstallPat: ""
-  npmPublishEndpoint: ""
-  npmPublishPat: "$(npmPublishPat)"
+  npmReleasePublishEndpoint: ""
+  npmReleasePublishPat: "$(npmReleasePublishPat)"
+  npmCiPublishEndpoint: ""
+  npmCiPublishPat: "$(npmCiPublishPat)"
   githubPat: "$(githubPat)"
 
 jobs:
@@ -53,31 +56,41 @@ jobs:
   - template: "../shared/find-new-version.yml"
     parameters:
       changelogPath: ${{parameters.changelogPath}}
-      versionHeaderPattern: ${{parameters.versionHeaderPattern}}
+      releaseVersionHeaderPattern: ${{parameters.releaseVersionHeaderPattern}}
+      unreleasedVersionHeaderPattern: ${{parameters.unreleasedVersionHeaderPattern}}
+  - powershell: |
+      $npmPublishEndpoint = if($env:NEWVERSIONISRELEASE){"${{parameters.npmReleasePublishEndpoint}}"}else{"${{parameters.npmCiPublishEndpoint}}"}
+      $npmPublishPat = if($env:NEWVERSIONISRELEASE){"${{parameters.npmReleasePublishPat}}"}else{"${{parameters.npmCiPublishPat}}"}
+      
+      write-host "##vso[task.setvariable variable=npmPublishEndpoint]$npmPublishEndpoint"
+      write-host "##vso[task.setvariable variable=npmPublishPat]$npmPublishPat"
+    displayName: "Set publish endpoint"
+    condition: and(succeeded(), ne(variables['newVersion'], ''))
+  # TODO no way to define a runtime condition for templates?
   - template: set-npmrc.yml
     parameters:
-      endpoint: ${{parameters.npmPublishEndpoint}}
-      pat: ${{parameters.npmPublishPat}}
+      endpoint: $(npmPublishEndpoint)
+      pat: $(npmPublishPat)
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
       "Publishing package:"
-      .\node_modules\.bin\yarn publish --no-git-tag-version --new-version $env:VERSION | Render-Body
+      .\node_modules\.bin\yarn publish --no-git-tag-version --new-version $env:NEWVERSION | Render-Body
 
       if($lastExitCode -ne 0) {
         $packageJson = get-content package.json | convertfrom-json
         $packageVersions = (.\node_modules\.bin\yarn info $packageJson.name versions -s --json | convertfrom-json).data
 
         # If error occurred because package already exists, allow pipeline to continue
-        if($packageVersions -contains $env:VERSION){
-          "$($packageJson.name)@$env:VERSION already exists..."
+        if($packageVersions -contains $env:NEWVERSION){
+          "$($packageJson.name)@$env:NEWVERSION already exists..."
           exit 0
         }else{
           throw "An unexpected error occurred while attempting to publish the package. If it was an intermittent issue, do a manual rebuild of the same commit ($env:BUILD_SOURCEVERSION). Otherwise, rectify the issue and merge the changes into master to trigger a CI build."
         }
       }
     displayName: "Publish"
-    condition: and(succeeded(), ne(variables['version'], '')) # If previous tasks succeeded and a non empty version variable exists
+    condition: and(succeeded(), ne(variables['newVersion'], '')) # If previous tasks succeeded and a non empty version variable exists
   - template: "../shared/tag-commit.yml"
     parameters:
       githubPat: ${{parameters.githubPat}}
