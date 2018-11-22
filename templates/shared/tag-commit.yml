@@ -21,7 +21,7 @@ steps:
     "    Commit author email: " + $commitAuthorEmail
     git config user.email $commitAuthorEmail
 
-    git tag -a $env:VERSION -m "Azure build ID: $env:BUILDID" | RENDER-Body
+    git tag -a $env:NEWVERSION -m "Azure build ID: $env:BUILDID" | RENDER-Body
     if($lastExitCode -ne 0){
       throw "Failed to tag commit."
     }
@@ -29,13 +29,15 @@ steps:
     # Push to Github
     $uri = $env:BUILD_REPOSITORY_URI -replace "github.com", "${{parameters.githubPat}}@github.com"
     "`nPushing tag to Github ($uri):"
-    git push -u $uri $env:VERSION -q | Render-Body
+    git push -u $uri $env:NEWVERSION -q | Render-Body
 
     if($lastExitCode -ne 0){
-      throw "An error occurred while attempting to push tag $env:VERSION to Github. If it was an intermittent issue, 
-    do a manual rebuild of the same commit ($env:BUILD_SOURCEVERSION). Otherwise, manually tag commit $env:BUILD_SOURCEVERSION as $env:VERSION (packages generated from this commit have already been published) then
+      throw "An error occurred while attempting to push tag $env:NEWVERSION to Github. If it was an intermittent issue, 
+    do a manual rebuild of the same commit ($env:BUILD_SOURCEVERSION). Otherwise, manually tag commit $env:BUILD_SOURCEVERSION as $env:NEWVERSION (packages generated from this commit have already been published) then
     rectify the issue and merge the changes into master to trigger a CI build."
     }
-    "    Tag $env:VERSION pushed to Github."
-  condition: and(succeeded(), ne(variables['version'], '')) # If previous tasks succeeded and a non empty version variable exists
+    "    Tag $env:NEWVERSION pushed to Github."
+  # TODO Github displays all tags as releases, there is an issue for this - https://github.community/t5/How-to-use-Git-and-GitHub/Tag-without-release/m-p/7906. At present, tagging every CI version clutters up the
+  # release tab. Consider tagging all CI versions if it gets resolved.
+  condition: and(succeeded(), eq(variables['newVersionIsRelease'], 'true')) # If previous tasks succeeded and a new release version was found
   displayName: "Tag commit"
