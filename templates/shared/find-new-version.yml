@@ -1,6 +1,7 @@
 parameters:
   changelogPath: ""
-  versionHeaderPattern: ""
+  releaseVersionHeaderPattern: ""
+  unreleasedVersionHeaderPattern: ""
 
 # Outputs a job scoped variable named version if a new version is found
 steps:
@@ -14,16 +15,27 @@ steps:
       "Pull request build, nothing to deploy"
       exit
     }
-    "`nCommit is a merge commit into master...`n"
+    "`nCommit is a merge commit into master. Finding new version...`n"
 
     # Find new version
-    "Changelog versions:"
-    $changelogVersions = get-content "${{parameters.changelogPath}}" | foreach{if($_ -match "${{parameters.versionHeaderPattern}}"){$matches[1]}}
+    "Changelog release versions:"
+    $releaseVersions = get-content "${{parameters.changelogPath}}" | 
+      foreach {
+        if($_ -match "${{parameters.releaseVersionHeaderPattern}}"){
+          $matches[1]
+        }
+        elseif ($_ -match "${{parameters.unreleasedVersionHeaderPattern}}"){
+          $unreleasedVersion = $matches[1]
+        }
+      }
     if(-not($?)){
       throw "Failed to read changelog."
     }
-    $changelogVersions | Render-Body
+    $releaseVersions | Render-Body
     
+    "Changelog unreleased version:"
+    $unreleasedVersion | Render-Body
+
     "Git tags:"
     $gitTags = git tag -l
     if($lastExitCode -ne 0){
@@ -31,16 +43,30 @@ steps:
     }
     $gitTags | Render-Body
 
-    $newVersion = $changelogVersions | where{-not($gitTags -contains $_)}
-    # If there is only 1 string, powershell assigns a string with non-zero length to $newVersion
-    if($newVersion -is [array]){
-      throw "Multiple new versions found, manual deployment required:`n$newVersion"
+    $newReleaseVersion = $releaseVersions | where{-not($gitTags -contains $_)}
+    # If there is only 1 string, powershell assigns a string with non-zero length to $newReleaseVersion
+    if($newReleaseVersion -is [array]){
+      throw "Multiple new release versions found, manual deployment required:`n$newReleaseVersion"
     }
-    if($newVersion.length -eq 0){
+    elseif($newReleaseVersion){
+      "New release version `"$newReleaseVersion"` found..."
+      write-host "##vso[task.setvariable variable=newVersion]$newReleaseVersion"
+      write-host "##vso[task.setvariable variable=newVersionIsRelease]true"
+    }
+    elseif($unreleasedVersion){
+      # Build number can be customized - https://docs.microsoft.com/en-us/azure/devops/pipelines/build/options?view=vsts&tabs=yaml
+      if($unreleasedVersion.Contains("-")){
+        $newCiVersion = "$unreleasedVersion.$env:BUILD_BUILDNUMBER" # Add build number to existing pre-release segment
+      }
+      else{
+        $newCiVersion = "$unreleasedVersion-$env:BUILD_BUILDNUMBER" # Add build number as pre-release segment
+      }
+
+      "New CI version `"$newCiVersion"` found..."
+      write-host "##vso[task.setvariable variable=newVersion]$newCiVersion"
+    }
+    else{
       "No new version."
-      exit
     }
 
-    "New version `"$newVersion`" found...`n"
-    write-host "##vso[task.setvariable variable=version]$newVersion"
   displayName: "Find new version"
