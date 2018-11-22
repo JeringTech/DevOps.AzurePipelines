@@ -10,6 +10,7 @@ https://docs.microsoft.com/en-us/azure/devops/pipelines/process/templates?view=v
 - Code coverage report generation and publishing.
 - Versioning using a changelog, git tagging.
 - Dependency caching.
+- Publishing of CI builds
 
 ## Add Instructions For
 - Symbols using source link.
@@ -18,3 +19,4 @@ https://docs.microsoft.com/en-us/azure/devops/pipelines/process/templates?view=v
 - Adding an icon for nuget.org
   - PackageIconUrl
   - https://github.com/NuGet/Home/issues/352
+- Customizing build number for CI builds - https://docs.microsoft.com/en-us/azure/devops/pipelines/build/options?view=vsts&tabs=yaml
