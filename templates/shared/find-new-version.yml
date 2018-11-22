@@ -1,7 +1,7 @@
 parameters:
   changelogPath: ""
   releaseVersionHeaderPattern: ""
-  unrVerHeaderPattern: ""
+  unreleasedVersionHeaderPattern: ""
 
 # Outputs a job scoped variable named version if a new version is found
 steps:
@@ -36,21 +36,21 @@ steps:
     if($lastExitCode -ne 0){throw "Failed to retrieve existing Git tags."}
     $tags | R-B
 
-    $newRVer=$rVs | where{-not($tags -contains $_)}
-    # If there is only 1 string, powershell assigns a string with non-zero length to $newRVer
-    if($newRVer -is [array]){throw "Multiple new release versions found, manual deployment required:`n$newRVer"}
-    elseif($newRVer){
-      "New release version `"$newRVer"` found..."
-      write-host ($vsoSetVar + "newVersion]$newRVer")
+    $newRV=$rVs | where{-not($tags -contains $_)}
+    # If there is only 1 string, powershell assigns a string with non-zero length to $newRV
+    if($newRV -is [array]){throw "Multiple new release versions found, manual deployment required:`n$newRV"}
+    elseif($newRV){
+      "New release version `"$newRV`" found..."
+      write-host ($vsoSetVar + "newVersion]$newRV")
       write-host ($vsoSetVar + "newVersionIsRelease]true")
     }
     elseif($uV){
       # Build number can be customized - https://docs.microsoft.com/en-us/azure/devops/pipelines/build/options?view=vsts&tabs=yaml
-      if($uV.Contains("-")){$newCVer="$uV.$env:BUILD_BUILDNUMBER"} # Add build number to existing pre-release segment
-      else{$newCVer="$uV-$env:BUILD_BUILDNUMBER"} # Add build number as pre-release segment
+      if($uV.Contains("-")){$newCV="$uV.$env:BUILD_BUILDNUMBER"} # Add build number to existing pre-release segment
+      else{$newCV="$uV-$env:BUILD_BUILDNUMBER"} # Add build number as pre-release segment
 
-      "New CI version `"$newCVer"` found..."
-      write-host ($vsoSetVar + "newVersion]$newCVer")
+      "New CI version `"$newCV`" found..."
+      write-host ($vsoSetVar + "newVersion]$newCV")
     }
     else{"No new version."}
   displayName: "Find new version"

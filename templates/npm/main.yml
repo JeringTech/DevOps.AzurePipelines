@@ -69,8 +69,8 @@ jobs:
   # TODO no way to define a runtime condition for templates?
   - template: set-npmrc.yml
     parameters:
-      endpoint: $(npmPublishEndpoint)
-      pat: $(npmPublishPat)
+      endpoint: "$env:NPMPUBLISHENDPOINT"
+      pat: "$env:NPMPUBLISHPAT"
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 

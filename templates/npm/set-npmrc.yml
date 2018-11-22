@@ -19,4 +19,4 @@ steps:
       add-content .npmrc "$($endpoint -replace 'https:', ''):_authToken=$pat"
       add-content .npmrc "always-auth=true"
     }
-  displayName: "Set registry"
+  displayName: "Set npmrc"
