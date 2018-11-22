@@ -5,12 +5,15 @@ parameters:
   runCodeCoverage: true
   codecovKey: "$(codecovKey)"
   changelogPath: "CHANGELOG.md"
-  versionHeaderPattern: '^##[ \t]*\[(\d+\.\d+\.\d+[0-9A-Za-z-.]*)\]'
+  releaseVersionHeaderPattern: '^##[ \t]*\[(\d+\.\d+\.\d+[0-9A-Za-z-.]*)\]'
+  unreleasedVersionHeaderPattern: '^##[ \t]*\[Unreleased[ \t]*\((\d+\.\d+\.\d+[0-9A-Za-z-.]*)\)\]'
   # TODO allow for multiple restore endpoints
   nugetRestoreEndpoint: ""
   nugetRestorePat: ""
-  nugetPushEndpoint: "https://www.nuget.org/api/v2/package"
-  nugetPushPat: "$(nugetPushPat)"
+  nugetReleasePushEndpoint: "https://www.nuget.org/api/v2/package"
+  nugetReleasePushPat: "$(nugetReleasePushPat)"
+  nugetCiPushEndpoint: ""
+  nugetCiPushPat: "$(nugetCiPushPat)"
   nugetDistUrl: "https://dist.nuget.org/win-x86-commandline/v4.7.1/nuget.exe"
   githubPat: "$(githubPat)"
   nonWindowsTestsTargetFramework: "netcoreapp2.1"
@@ -137,7 +140,8 @@ jobs:
   - template: "../shared/find-new-version.yml"
     parameters:
       changelogPath: ${{parameters.changelogPath}}
-      versionHeaderPattern: ${{parameters.versionHeaderPattern}}
+      releaseVersionHeaderPattern: ${{parameters.releaseVersionHeaderPattern}}
+      unreleasedVersionHeaderPattern: ${{parameters.unreleasedVersionHeaderPattern}}
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
@@ -145,16 +149,18 @@ jobs:
       $env:NUGET_PACKAGES=$env:SYSTEM_DEFAULTWORKINGDIRECTORY + "/packages"
 
       "Packing Nuget package(s):"
-      dotnet pack --no-restore --no-build --configuration "${{parameters.buildConfiguration}}" -p:PackageVersion=$env:VERSION | Render-Body
+      dotnet pack --no-restore --no-build --configuration "${{parameters.buildConfiguration}}" -p:PackageVersion=$env:NEWVERSION | Render-Body
       if($lastExitCode -ne 0){
         throw "Failed to pack packages. A project probably isn't properly configured."
       }
 
       # Push using endpoint and api key
       "Pushing packages:"
+      $nugetPushEndpoint = if($env:NEWVERSIONISRELEASE){"${{parameters.nugetReleasePushEndpoint}}"}else{"${{parameters.nugetCiPushEndpoint}}"}
+      $nugetPushPat = if($env:NEWVERSIONISRELEASE){"${{parameters.nugetReleasePushPat}}"}else{"${{parameters.nugetCiPushPat}}"}
       $packages = get-childitem src *.nupkg -Recurse
       foreach($package in $packages) {
-        $message = dotnet nuget push $package.fullname --source "${{parameters.nugetPushEndpoint}}" --api-key "${{parameters.nugetPushPat}}"
+        $message = dotnet nuget push $package.fullname --source $nugetPushEndpoint --api-key $nugetPushPat
         $message | Render-body
 
         # 409 returned if a package with the provided ID and version already exists - https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#push-a-package
@@ -171,7 +177,7 @@ jobs:
       # If we get here, any failed publish attempts were because the package already exists
       exit 0
     displayName: "Push"
-    condition: and(succeeded(), ne(variables['version'], ''))
+    condition: and(succeeded(), ne(variables['newVersion'], ''))
   - template: "../shared/tag-commit.yml"
     parameters:
       githubPat: ${{parameters.githubPat}}
