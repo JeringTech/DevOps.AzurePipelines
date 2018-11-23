@@ -25,7 +25,7 @@ steps:
     $rVs=get-content "${{parameters.changelogPath}}" | 
       foreach {
         if($_ -match "${{parameters.releaseVersionHeaderPattern}}"){$matches[1]}
-        elseif (($findUnreleasedPrereleaseVersion -eq 'true') -and ($_ -match "${{parameters.unreleasedVersionHeaderPattern}}")){$uV=$matches[1]}
+        elseif (($findUnreleasedPrereleaseVersion -eq 'True') -and ($_ -match "${{parameters.unreleasedVersionHeaderPattern}}")){$uV=$matches[1]}
       }
     if(-not($?)){throw "Failed to read changelog."}
     $rVs | R-B
