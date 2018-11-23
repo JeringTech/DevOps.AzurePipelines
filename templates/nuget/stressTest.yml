@@ -42,4 +42,5 @@ jobs:
     inputs:
       testResultsFormat: 'VSTest'
       testResultsFiles: '**/*.trx'
+      searchFolder: "$(Agent.TempDirectory)"
     displayName: "Publish test results"

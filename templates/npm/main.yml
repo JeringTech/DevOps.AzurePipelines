@@ -6,8 +6,8 @@ parameters:
   npmInstallPat: ""
   npmReleasePublishEndpoint: ""
   npmReleasePublishPat: "$(npmReleasePublishPat)"
-  npmCiPublishEndpoint: ""
-  npmCiPublishPat: "$(npmCiPublishPat)"
+  npmUnreleasedPrereleasePublishEndpoint: ""
+  npmUnreleasedPrereleasePublishPat: "$(npmUnreleasedPrereleasePublishPat)"
   githubPat: "$(githubPat)"
 
 jobs:
@@ -58,10 +58,10 @@ jobs:
       changelogPath: ${{parameters.changelogPath}}
       releaseVersionHeaderPattern: ${{parameters.releaseVersionHeaderPattern}}
       unreleasedVersionHeaderPattern: ${{parameters.unreleasedVersionHeaderPattern}}
-      findCiVersion: ${{ne(parameters.nugetCiPushEndpoint, '')}}
+      findUnreleasedPrereleaseVersion: ${{ne(parameters.nugetUnreleasedPrereleasePushEndpoint, '')}}
   - powershell: |
-      $npmPublishEndpoint = if($env:NEWVERSIONISRELEASE){"${{parameters.npmReleasePublishEndpoint}}"}else{"${{parameters.npmCiPublishEndpoint}}"}
-      $npmPublishPat = if($env:NEWVERSIONISRELEASE){"${{parameters.npmReleasePublishPat}}"}else{"${{parameters.npmCiPublishPat}}"}
+      $npmPublishEndpoint = if($env:NEWVERSIONISRELEASE){"${{parameters.npmReleasePublishEndpoint}}"}else{"${{parameters.npmUnreleasedPrereleasePublishEndpoint}}"}
+      $npmPublishPat = if($env:NEWVERSIONISRELEASE){"${{parameters.npmReleasePublishPat}}"}else{"${{parameters.npmUnreleasedPrereleasePublishPat}}"}
       
       write-host "##vso[task.setvariable variable=npmPublishEndpoint]$npmPublishEndpoint"
       write-host "##vso[task.setvariable variable=npmPublishPat]$npmPublishPat"

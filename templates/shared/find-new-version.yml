@@ -2,7 +2,7 @@ parameters:
   changelogPath: ""
   releaseVersionHeaderPattern: ""
   unreleasedVersionHeaderPattern: ""
-  findCiVersion: ""
+  findUnreleasedPrereleaseVersion: ""
 
 # Outputs a job scoped variable named version if a new version is found
 steps:
@@ -21,17 +21,18 @@ steps:
 
     # Find new version
     "Changelog release versions:"
+    $findUnreleasedPrereleaseVersion = "${{parameters.findUnreleasedPrereleaseVersion}}"
     $rVs=get-content "${{parameters.changelogPath}}" | 
       foreach {
         if($_ -match "${{parameters.releaseVersionHeaderPattern}}"){$matches[1]}
-        elseif (($findCiVersion -eq 'true') -and ($_ -match "${{parameters.unreleasedVersionHeaderPattern}}")){$uV=$matches[1]}
+        elseif (($findUnreleasedPrereleaseVersion -eq 'true') -and ($_ -match "${{parameters.unreleasedVersionHeaderPattern}}")){$uV=$matches[1]}
       }
     if(-not($?)){throw "Failed to read changelog."}
     $rVs | R-B
     
     "Changelog unreleased version:"
-    if($findCiVersion -eq 'true'){$uV | R-B}
-    else{"    Publishing of CI build artifacts disabled."}
+    if($findUnreleasedPrereleaseVersion -eq 'true'){$uV | R-B}
+    else{"    Publishing of unreleased prereleases isn't enabled."}
 
     "Git tags:"
     $tags=git tag -l
@@ -48,11 +49,11 @@ steps:
     }
     elseif($uV){
       # Build number can be customized - https://docs.microsoft.com/en-us/azure/devops/pipelines/build/options?view=vsts&tabs=yaml
-      if($uV.Contains("-")){$newCV="$uV.$env:BUILD_BUILDNUMBER"} # Add build number to existing pre-release segment
-      else{$newCV="$uV-$env:BUILD_BUILDNUMBER"} # Add build number as pre-release segment
+      if($uV.Contains("-")){$newUV="$uV.$env:BUILD_BUILDNUMBER"} # Add build number to existing pre-release segment
+      else{$newUV="$uV-$env:BUILD_BUILDNUMBER"} # Add build number as pre-release segment
 
-      "New CI version `"$newCV`" found..."
-      write-host ($vsoSetVar + "newVersion]$newCV")
+      "New unreleased prerelease `"$newUV`" found..."
+      write-host ($vsoSetVar + "newVersion]$newUV")
     }
     else{"No new version."}
   displayName: "Find new version"
