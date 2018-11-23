@@ -11,7 +11,7 @@ steps:
 # to master. Only commits to master might have stuff to deploy.
 - powershell: |
     function R-B { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
-    $vsoSetVar="##vso[task.setvariable variable="
+    $setVar="##vso[task.setvariable variable="
 
     if($env:BUILD_SOURCEBRANCHNAME -ne 'master'){
       "Pull request build, nothing to deploy"
@@ -31,8 +31,9 @@ steps:
     $rVs | R-B
     
     "Changelog unreleased version:"
-    if($findUnreleasedPrereleaseVersion -eq 'true'){$uV | R-B}
-    else{"    Publishing of unreleased prereleases isn't enabled."}
+    if($findUnreleasedPrereleaseVersion -ne 'true'){"`n    Publishing of unreleased prereleases isn't enabled.`n"}
+    elseif($uv){$uV | R-B}
+    else{"`n    No unreleased version found.`n"}
 
     "Git tags:"
     $tags=git tag -l
@@ -40,19 +41,18 @@ steps:
     $tags | R-B
 
     $newRV=$rVs | where{-not($tags -contains $_)}
-    # If there is only 1 string, powershell assigns a string with non-zero length to $newRV
     if($newRV -is [array]){throw "Multiple new release versions found, manual deployment required:`n$newRV"}
     elseif($newRV){
       "New release version `"$newRV`" found..."
-      write-host ($vsoSetVar + "newVersion]$newRV")
-      write-host ($vsoSetVar + "newVersionIsRelease]true")
+      write-host ($setVar + "newVersion]$newRV")
+      write-host ($setVar + "newVersionIsRelease]true")
     }
     elseif($uV){
       if($uV.Contains("-")){$newUV="$uV.$env:BUILD_BUILDNUMBER"} # Add build number to existing pre-release segment
       else{$newUV="$uV-$env:BUILD_BUILDNUMBER"} # Add build number as pre-release segment
 
       "New unreleased prerelease `"$newUV`" found..."
-      write-host ($vsoSetVar + "newVersion]$newUV")
+      write-host ($setVar + "newVersion]$newUV")
     }
     else{"No new version."}
   displayName: "Find new version"
