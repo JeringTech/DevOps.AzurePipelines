@@ -142,7 +142,7 @@ jobs:
       changelogPath: ${{parameters.changelogPath}}
       releaseVersionHeaderPattern: ${{parameters.releaseVersionHeaderPattern}}
       unreleasedVersionHeaderPattern: ${{parameters.unreleasedVersionHeaderPattern}}
-      findUnreleasedVersion: ${{ne(parameters.nugetUnreleasedPrereleasePushEndpoint, '')}}
+      findUnreleasedPrereleaseVersion: ${{ne(parameters.nugetUnreleasedPrereleasePushEndpoint, '')}}
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
