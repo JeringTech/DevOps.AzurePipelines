@@ -48,7 +48,6 @@ steps:
       write-host ($vsoSetVar + "newVersionIsRelease]true")
     }
     elseif($uV){
-      # Build number can be customized - https://docs.microsoft.com/en-us/azure/devops/pipelines/build/options?view=vsts&tabs=yaml
       if($uV.Contains("-")){$newUV="$uV.$env:BUILD_BUILDNUMBER"} # Add build number to existing pre-release segment
       else{$newUV="$uV-$env:BUILD_BUILDNUMBER"} # Add build number as pre-release segment
 
