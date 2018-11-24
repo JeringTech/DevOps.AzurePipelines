@@ -58,7 +58,7 @@ jobs:
       changelogPath: ${{parameters.changelogPath}}
       releaseVersionHeaderPattern: ${{parameters.releaseVersionHeaderPattern}}
       unreleasedVersionHeaderPattern: ${{parameters.unreleasedVersionHeaderPattern}}
-      findUnreleasedPrereleaseVersion: ${{ne(parameters.nugetUnreleasedPrereleasePushEndpoint, '')}}
+      findUnreleasedPrereleaseVersion: ${{ne(parameters.npmUnreleasedPrereleasePublishEndpoint, '')}}
   - powershell: |
       $npmPublishEndpoint = if($env:NEWVERSIONISRELEASE){"${{parameters.npmReleasePublishEndpoint}}"}else{"${{parameters.npmUnreleasedPrereleasePublishEndpoint}}"}
       $npmPublishPat = if($env:NEWVERSIONISRELEASE){"${{parameters.npmReleasePublishPat}}"}else{"${{parameters.npmUnreleasedPrereleasePublishPat}}"}
