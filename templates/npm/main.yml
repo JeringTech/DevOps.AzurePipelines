@@ -48,6 +48,8 @@ jobs:
 # TODO Test
 # Deploy
 - job: "NpmDeploy"
+  pool:
+    vmImage: "vs2017-win2016"
   dependsOn:
   - "NpmBuild"
   steps:

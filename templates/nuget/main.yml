@@ -127,6 +127,8 @@ jobs:
         extraArguments: "--framework ${{ parameters.nonWindowsTestsTargetFramework }}"
 # Deploy
 - job: "NugetDeploy"
+  pool:
+    vmImage: "vs2017-win2016"
   dependsOn:
   - ${{if eq(parameters.runTests, 'true')}}:
     - "NugetWindowsTests"
