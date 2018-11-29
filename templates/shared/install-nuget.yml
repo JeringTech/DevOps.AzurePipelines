@@ -1,0 +1,14 @@
+parameters:
+  nugetDistUrl: ""
+
+steps:
+- powershell: |
+    function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
+
+    "Installing Nuget:`n"
+    Invoke-WebRequest "${{parameters.nugetDistUrl}}" -outfile nuget.exe | Render-Body
+    if(-not($?)){
+      throw "Failed to install Nuget."
+    }
+    "    Nuget v4.7.1 installed.`n"
+  displayName: "Install Nuget"

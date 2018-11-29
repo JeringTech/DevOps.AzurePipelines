@@ -22,11 +22,13 @@ jobs:
       write-host "##vso[task.setvariable variable=buildAndDeploy]true"
     displayName: "Check build and deploy required"
   - ${{if ne(parameters.nugetRestoreEndpoint, '')}}:
+    - template: "../shared/install-nuget.yml"
+      parameters:
+        nugetDistUrl: ${{parameters.nugetDistUrl}}
     - template: "../shared/set-nuget-restore-endpoint.yml"
       parameters: 
         nugetRestoreEndpoint: ${{parameters.nugetRestoreEndpoint}}
         nugetRestorePat: ${{parameters.nugetRestorePat}}
-        nugetDistUrl: ${{parameters.nugetDistUrl}}
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 

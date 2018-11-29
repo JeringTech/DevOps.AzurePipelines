@@ -1,7 +1,6 @@
 parameters:
   nugetRestoreEndpoint: ""
   nugetRestorePat: ""
-  nugetDistUrl: ""
 
 steps:
 - powershell: |
@@ -10,13 +9,6 @@ steps:
     $nugetRestorePat = "${{parameters.nugetRestorePat}}"
 
     $configFilePath = $env:SYSTEM_DEFAULTWORKINGDIRECTORY + "/NuGet.Config"
-
-    "Installing Nuget:`n"
-    Invoke-WebRequest "${{parameters.nugetDistUrl}}" -outfile nuget.exe
-    if(-not($?)){
-      throw "Failed to install Nuget."
-    }
-    "    Nuget v4.7.1 installed.`n"
 
     # Use File.WriteAllLines since Nuget errors out if file has "UTF8 with BOM" encoding
     "Generating empty NuGet.Config:`n"
