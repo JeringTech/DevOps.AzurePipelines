@@ -93,14 +93,16 @@ jobs:
         # Publish report to codecov
         "Publishing code coverage report(s)...`n"
 
-        "Installing Codecov:"      
-        choco install codecov --yes --no-progress --cache-location=. | Render-Body 
+        "Installing Codecov:"
+        # Install to current dir https://github.com/dotnet/cli/issues/8368
+        # TODO Codecov is working on publishing as a .Net tool https://github.com/codecov/codecov-exe/issues/44
+        nuget install Codecov -Version 1.1.0 | Render-Body
         if($lastExitCode -ne 0){
           throw "Failed to install Codecov."
         }
 
         "Publishing to Codecov:"
-        codecov -f $reports -t "${{parameters.codecovKey}}" --required | Render-Body # Exit code 1 if uploading of report fails, otherwise it may fail silently
+        .\Codecov.1.1.0\tools\codecov.exe -f $reports -t "${{parameters.codecovKey}}" --required | Render-Body
         if($lastExitCode -ne 0){
           throw "Failed to upload code coverage reports to Codecov."
         }
