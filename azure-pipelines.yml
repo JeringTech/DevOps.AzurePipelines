@@ -1,0 +1,8 @@
+trigger:
+- master
+
+jobs:
+- template: templates/docs/main.yml
+  parameters:
+    nugetRestoreEndpoints: "https://pkgs.dev.azure.com/JeremyTCD/_packaging/Main/nuget/v2"
+    nugetRestorePats: "$(nugetRestorePat)"
