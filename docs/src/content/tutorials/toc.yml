@@ -1,0 +1,41 @@
+- name: Introduction
+  href: introduction
+- name: Quick Start
+  href: quick-start
+- name: Pipeline In-Depth
+  href: pipeline-in-depth
+  items:
+  - name: InheritDoc
+    href: pipeline-in-depth/inheritdoc
+  - name: Cross Platform Testing
+    href: pipeline-in-depth/cross-platform-testing
+  - name: Code Coverage
+    href: pipeline-in-depth/code-coverage
+  - name: Changelog Based Versioning
+    href: pipeline-in-depth/changelog-based-versioning
+  - name: Publishing Packages
+    href: pipeline-in-depth/publishing-packages
+  - name: Tagging Commits
+    href: pipeline-in-depth/tagging-commits
+  - name: Artifacts
+    href: pipeline-in-depth/artifacts
+- name: Packages In-Depth
+  href: packages-in-depth
+  items:
+  - name: Assembly Versioning
+    href: packages-in-depth/assembly-versioning
+  - name: Code Signing
+    href: packages-in-depth/code-signing
+  - name: Icons
+    href: packages-in-depth/icons
+  - name: Strong Naming
+    href: packages-in-depth/strong-naming
+  - name: Symbols
+    href: packages-in-depth/symbols
+  - name: Xml Documentation
+    href: packages-in-depth/xml-documentation
+- name: Projects In-Depth
+  href: projects-in-depth
+  items:
+  - name: Analyzers
+    href: projects-in-depth/analyzers
