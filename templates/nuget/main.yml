@@ -4,7 +4,7 @@ parameters:
   runTests: true
   runCodeCoverage: true
   codecovKey: "$(codecovKey)"
-  changelogPath: "CHANGELOG.md"
+  changelogPath: "Changelog.md"
   releaseVersionHeaderPattern: '^##[ \t]*\[(\d+\.\d+\.\d+[0-9A-Za-z-.]*)\]'
   unreleasedVersionHeaderPattern: '^##[ \t]*\[Unreleased[ \t]*\((\d+\.\d+\.\d+[0-9A-Za-z-.]*)\)\]'
   nugetRestoreEndpoints: ""

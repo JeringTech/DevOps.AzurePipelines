@@ -11,6 +11,6 @@ mimo_disableCategoryMenu: true
 
 +{
     "type": "Markdown",
-    "sourceUri": "../../../Licenses.md",
+    "sourceUri": "../../../License.md",
     "clippings": [{"startLineNumber": 2}]
 }
