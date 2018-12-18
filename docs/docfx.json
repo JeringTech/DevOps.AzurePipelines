@@ -64,7 +64,7 @@
 
             "mimo_addressBarColor": "#1565C0"
         },
-        "postProcessors": [ "SortedArticleListGenerator", "ExternalAnchorFixer", "SearchIndexGenerator", "OutlineGenerator", "TocEmbedder", "AbsolutePathResolver" ],
+        "postProcessors": [ "SortedArticleListGenerator", "SearchIndexGenerator", "OutlineGenerator", "TocEmbedder", "AbsolutePathResolver", "ExternalAnchorFixer" ],
         "markdownEngineName": "mimo-markdown",
         "sitemap": {
             "baseUrl": "https://www.jering.tech/utilities/jering.devops.azurepipelines",

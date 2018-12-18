@@ -1,16 +1,15 @@
 ---
-mimo_pageDescription: Licenses for Jering.DevOps.AzurePipelines.
-mimo_pageTitle: Licenses
-mimo_pageID: licenses
+mimo_pageDescription: Changelog for Jering.DevOps.AzurePipelines.
+mimo_pageTitle: Changelog
+mimo_pageID: changelog
 mimo_includeInSal: false
 mimo_includeInSearchIndex: false
-mimo_disableEditArticle: true
 mimo_disableMetadata: true
 mimo_disableCategoryMenu: true
 ---
 
 +{
     "type": "Markdown",
-    "sourceUri": "../../../Licenses.md",
+    "sourceUri": "../../../Changelog.md",
     "clippings": [{"startLineNumber": 2}]
 }

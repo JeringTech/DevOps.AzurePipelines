@@ -1,4 +1,57 @@
 @import '../../../node_modules/mimo-website/dist/styles/shared/constants';
 
 #home {
+    #core {
+        main {
+            article {
+                margin-top: 59px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+
+                > h1.title {
+                    display: none;
+                }
+
+                #banner {
+                    margin-top: 0;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+
+                    svg {
+                        height: 249px;
+                        width: 184px;
+                        margin-top: 0px;
+                    }
+
+                    h2 {
+                        text-align: center;
+                        margin-top: 36px;
+                    }
+
+                    span {
+                        margin-top: 14px;
+                        font-size: $font-size-4;
+                        text-align: center;
+                    }
+                }
+
+                .card-set {
+                    margin-top: 59px;
+                    max-width: 1200px;
+
+                    #card-jering {
+                        svg {
+                            path {
+                                &:last-child {
+                                    fill: $color-secondary; // jering logo is designed like a stencil, whereby the stencil itself is red
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
