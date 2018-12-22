@@ -6,6 +6,11 @@ parameters:
 steps:
 - checkout: "none"
 - template: "../shared/download-working-directory.yml"
+# We need to restore so that tools like coverlet and Microsoft.Net.Test.SDK are available
+- task: "DotNetCoreCLI@2"
+  displayName: "Restore"
+  inputs:
+    command: "restore"
 - task: "DotNetCoreCLI@2"
   displayName: "Test"
   inputs:
@@ -15,5 +20,3 @@ steps:
   # Skip dotnet first time experience
   env:
     DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
-    # Make sure dotnet knows to look for packages in ./packages
-    NUGET_PACKAGES: $(system.defaultWorkingDirectory)/packages

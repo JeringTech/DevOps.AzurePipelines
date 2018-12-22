@@ -1,3 +1,12 @@
+# Notes
+# - NUGET_PACKAGES
+#   - Initially, NUGET_PACKAGES was set to $(system.defaultWorkingDirectory)/packages, enabling the following workflow:
+#     1) download packages to the working directory in the build job, 2) upload packages to pipeline artifacts, 3) avoid re-restoring and rebuilding in test and deploy jobs.
+#     This broke when DotNetCoreCLI@2 auto-updated to 2.144.3 (or possibly, when agents started using a newer version of the dotnet SDK), 
+#     with the error message "To run tests with dotnet test add "<IsTestProject>true<IsTestProject>" property to project file." Example build: 
+#     https://dev.azure.com/JeringTech/Markdig.Extensions.FlexiBlocks/_build/results?buildId=196. For some reason, Microsoft.Net.Test.SDK no longer sets IsTestProject automatically on Linux and MacOS.
+#   - We now omit --no-restore and for tests (nuget/test.yml). Even if we can figure out why things broke, it's all just too brittle to bother saving ~10 seconds.
+
 parameters:
   buildConfiguration: "Release"
   runInheritDoc: true
@@ -33,9 +42,6 @@ jobs:
         nugetRestorePats: ${{parameters.nugetRestorePats}}
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
-
-      # Place cache in working directory so that it is uploaded to pipeline artifacts
-      $env:NUGET_PACKAGES=$env:SYSTEM_DEFAULTWORKINGDIRECTORY + "/packages"
 
       "Restoring packages:"
       dotnet restore | Render-Body
@@ -151,13 +157,16 @@ jobs:
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
-      # Make sure dotnet knows to look for packages in ./packages
-      $env:NUGET_PACKAGES=$env:SYSTEM_DEFAULTWORKINGDIRECTORY + "/packages"
+      "Restoring packages:"
+      dotnet restore | Render-Body
+      if($lastExitCode -ne 0){
+        throw "Failed to restore packages."
+      }
 
       "Packing Nuget package(s):"
       dotnet pack --no-restore --no-build --configuration "${{parameters.buildConfiguration}}" -p:PackageVersion=$env:NEWVERSION | Render-Body
       if($lastExitCode -ne 0){
-        throw "Failed to pack packages. A project probably isn't properly configured."
+        throw "Failed to pack package(s). A project probably isn't properly configured."
       }
 
       # Push using endpoint and api key
