@@ -54,24 +54,6 @@ jobs:
       if($lastExitCode -ne 0){
         throw "Failed to build solution."
       }
-
-      if("${{parameters.runInheritDoc}}" -eq 'true'){
-        "Installing InheritDoc:"
-        dotnet tool install InheritDocTool --tool-path . --version 2.0.2 | Render-Body # Install to current dir https://github.com/dotnet/cli/issues/8368
-        if($lastExitCode -ne 0){
-          throw "Failed to install InheritDoc."
-        }
-
-        "Running InheritDoc:"
-        .\InheritDoc.exe -b src -o | Render-Body
-        if($lastExitCode -ne 0){
-          throw "An error occurred when running InheritDoc."
-        }
-
-        # We won't be needing InheritDoc again in the pipeline
-        remove-item .\InheritDoc.exe
-        remove-item .\.store -recurse
-      }
     displayName: "Build"
   - template: "../shared/publish-working-directory.yml"
 # Test
@@ -154,6 +136,23 @@ jobs:
       releaseVersionHeaderPattern: ${{parameters.releaseVersionHeaderPattern}}
       unreleasedVersionHeaderPattern: ${{parameters.unreleasedVersionHeaderPattern}}
       findUnreleasedPrereleaseVersion: ${{ne(parameters.nugetUnreleasedPrereleasePushEndpoint, '')}}
+  - powershell: |
+      function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
+
+      if("${{parameters.runInheritDoc}}" -eq 'true'){
+        "Installing InheritDoc:"
+        dotnet tool install InheritDocTool --tool-path . --version 2.0.2 | Render-Body # Install to current dir https://github.com/dotnet/cli/issues/8368
+        if($lastExitCode -ne 0){
+          throw "Failed to install InheritDoc."
+        }
+
+        "Running InheritDoc:"
+        .\InheritDoc.exe -b src -o | Render-Body
+        if($lastExitCode -ne 0){
+          throw "An error occurred when running InheritDoc."
+        }
+      }
+    displayName: "Run InheritDoc"
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
