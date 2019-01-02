@@ -6,8 +6,6 @@ steps:
 - powershell: |
     function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
-    $nugetRestorePat = "${{parameters.nugetRestorePat}}"
-
     $configFilePath = $env:SYSTEM_DEFAULTWORKINGDIRECTORY + "/NuGet.Config"
 
     # Use File.WriteAllLines since Nuget errors out if file has "UTF8 with BOM" encoding
