@@ -1,5 +1,6 @@
 # Jering.DevOps.AzurePipelines
-TODO work in progress
+Work in progress.
+[![Build Status](https://dev.azure.com/JeringTech/DevOps.AzurePipelines/_apis/build/status/Jering.DevOps.AzurePipelines-CI?branchName=master)](https://dev.azure.com/JeringTech/DevOps.AzurePipelines/_build/latest?definitionId=6?branchName=master)
 
 ## Overview
 Defines AzurePipelines templates for use by Netstandard and .Net Core Nuget packages:
