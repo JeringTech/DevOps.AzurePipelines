@@ -2,11 +2,7 @@
 mimo_pageDescription: Contact information for Jering.DevOps.AzurePipelines.
 mimo_pageTitle: Contact
 mimo_pageID: contact
-mimo_includeInSal: false
-mimo_includeInSearchIndex: false
-mimo_disableEditArticle: true
-mimo_disableMetadata: true
-mimo_disableCategoryMenu: true
+mimo_isTextAndArticleMenu: true
 ---
 
 ## Source Code and Documentation Issues
