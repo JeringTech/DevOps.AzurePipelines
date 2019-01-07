@@ -1,5 +1,5 @@
 ﻿# Licenses
-Jering.DevOps.AzurePipelines, copyright © 2018 Jering. All rights reserved.
+Jering.DevOps.AzurePipelines, copyright © 2018-2019 Jering. All rights reserved.
 
 ## Source Code and Documentation Code-Examples
 Source code and documentation code-examples are licensed under the following license:
