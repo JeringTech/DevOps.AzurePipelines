@@ -1,11 +1,11 @@
 ---
-mimo_pageDescription: Home page of the documentation website for Jering.DevOps.AzurePipelines.
+mimo_pageDescription: Jering.DevOps.AzurePipelines is a collection of CI/CD Azure Pipelines for Nuget Packages, NPM Packages and more.
 mimo_pageTitle: Home
 mimo_pageID: home
 mimo_isDisplay: true
 mimo_fbCardType: website
 mimo_cardTitle: Jering.DevOps.AzurePipelines
-mimo_cardDescription: The documentation website for Jering.DevOps.AzurePipelines.
+mimo_cardDescription: Documentation for Jering.DevOps.AzurePipelines.
 mimo_unneededFontPreloads:
   - /resources/ibm-plex-mono-v3-latin-regular.woff2
 ---

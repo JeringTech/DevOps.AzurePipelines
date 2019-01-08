@@ -9,4 +9,4 @@ mimo_shareOnTwitter:
     via: JeringTech
 ---
 
-Work in progress.
+Work in progress. For now, the documentation for this project can be found [here](https://github.com/JeringTech/DevOps.AzurePipelines).
