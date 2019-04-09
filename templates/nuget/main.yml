@@ -25,7 +25,6 @@ parameters:
   nugetDistUrl: "https://dist.nuget.org/win-x86-commandline/v4.7.1/nuget.exe"
   githubPat: "$(githubPat)"
   nonWindowsTestsTargetFramework: "netcoreapp2.1"
-  dotnetCoreSdkVersion: "2.1.402"
 
 jobs:
 # Build
@@ -33,26 +32,6 @@ jobs:
   pool:
     vmImage: "vs2017-win2016"
   steps:
-  - powershell: |
-      function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
-
-      $dotnetCoreSdkVersion = "${{ parameters.dotnetCoreSdkVersion }}"
-      if($dotnetCoreSdkVersion){
-        "Setting .Net Core SDK version to $dotnetCoreSdkVersion...`n"
-        dotnet new globaljson --sdk-version $dotnetCoreSdkVersion
-      }else{
-        "No .Net Core SDK specified, using global.json version or latest installed version...`n"
-      }
-      if($lastExitCode -ne 0){
-        throw "Failed to set .Net Core SDK version."
-      }
-
-      ".Net Core SDK version:"
-      dotnet --version | Render-Body
-      if($lastExitCode -ne 0){
-        throw "Invalid .Net Core SDK version."
-      }
-    displayName: "Set .Net Core SDK version"
   - template: "../shared/install-nuget.yml"
     parameters:
       nugetDistUrl: ${{parameters.nugetDistUrl}}
