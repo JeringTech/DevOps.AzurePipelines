@@ -1,0 +1,24 @@
+parameters:
+  dotnetSdkVersion: ""
+  dotnetRuntimeVersions: []
+
+steps:
+- task: UseDotNet@2
+  displayName: 'Install .NET Core SDK'
+  inputs:
+    version: ${{parameters.dotnetSdkVersion}}
+- ${{ each runtime in parameters.dotnetRuntimeVersions }}:
+  - task: UseDotNet@2
+    displayName: 'Install .NET Core Runtime'
+    inputs:
+      packageType: runtime
+      version: ${{runtime}}
+- pwsh: |
+    function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
+  
+    "dotnet runtimes:"
+    dotnet --list-runtimes | Render-Body
+
+    "dotnet SDK:"
+    dotnet --version | Render-Body
+  displayName: "Check .Net Core Installation"

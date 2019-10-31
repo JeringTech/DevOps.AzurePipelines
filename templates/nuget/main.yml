@@ -25,19 +25,21 @@ parameters:
   nugetDistUrl: "https://dist.nuget.org/win-x86-commandline/v4.7.1/nuget.exe"
   githubPat: "$(githubPat)"
   nonWindowsTestsTargetFramework: "netcoreapp2.1"
-  dotnetVersion: "3.0.100"
+  dotnetSdkVersion: "3.0.100"
+  dotnetRuntimeVersions: ["2.1.13"]
+  outOfProcessTestDependencies: []
 
 jobs:
 # Build
 - job: "NugetBuild"
   pool:
-    vmImage: "vs2017-win2016"
+    vmImage: "windows-2019"
   steps:
-  # Fix dotnet version to avoid issues when agent is updated
-  - task: UseDotNet@2
-    displayName: 'Install .NET Core sdk'
-    inputs:
-      version: ${{parameters.dotnetVersion}}
+  # Fix dotnet versions to avoid issues when agent is updated
+  - template: "./install-dotnet.yml"
+    parameters:
+      dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}
+      dotnetRuntimeVersions: ${{parameters.dotnetRuntimeVersions}}
   - template: "../shared/install-nuget.yml"
     parameters:
       nugetDistUrl: ${{parameters.nugetDistUrl}}
@@ -48,9 +50,6 @@ jobs:
         nugetRestorePats: ${{parameters.nugetRestorePats}}
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
-
-      "dotnet version:"
-      dotnet --version | Render-Body
 
       "Restoring packages:"
       dotnet restore | Render-Body
@@ -72,13 +71,15 @@ jobs:
   - job: "NugetWindowsTests"
     dependsOn: "NugetBuild"
     pool:
-      vmImage: "vs2017-win2016"
+      vmImage: "windows-2019"
     steps:
     - template: "test.yml"
       parameters:
         buildConfiguration: ${{ parameters.buildConfiguration }}
         runCodeCoverage: "${{ parameters.runCodeCoverage }}"
-        dotnetVersion: ${{parameters.dotnetVersion}}
+        dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}
+        dotnetRuntimeVersions: ${{parameters.dotnetRuntimeVersions}}
+        outOfProcessTestDependencies: ${{parameters.outOfProcessTestDependencies}}
     # Publish code coverage reports
     - powershell: |
         function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
@@ -110,7 +111,7 @@ jobs:
   - job: "NugetLinuxTests"
     dependsOn: "NugetBuild"
     pool:
-      vmImage: "ubuntu-16.04"
+      vmImage: "ubuntu-18.04"
     steps:
     - template: "test.yml"
       parameters:
@@ -118,21 +119,25 @@ jobs:
         # TODO Figure out how to run .Net Framework test assemblies on Linux/macOS using mono. For now, only allow target framework to be specified so that
         # we can run only .Net Core test assemblies on Linux/macOS.
         extraArguments: "--framework ${{ parameters.nonWindowsTestsTargetFramework }}"
-        dotnetVersion: ${{parameters.dotnetVersion}}
+        dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}
+        dotnetRuntimeVersions: ${{parameters.dotnetRuntimeVersions}}
+        outOfProcessTestDependencies: ${{parameters.outOfProcessTestDependencies}}
   - job: "NugetMacOSTests"
     dependsOn: "NugetBuild"
     pool:
-      vmImage: "macOS-10.13"
+      vmImage: "macOS-10.14"
     steps:
     - template: "test.yml"
       parameters:
         buildConfiguration: ${{ parameters.buildConfiguration }}
         extraArguments: "--framework ${{ parameters.nonWindowsTestsTargetFramework }}"
-        dotnetVersion: ${{parameters.dotnetVersion}}
+        dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}
+        dotnetRuntimeVersions: ${{parameters.dotnetRuntimeVersions}}
+        outOfProcessTestDependencies: ${{parameters.outOfProcessTestDependencies}}
 # Deploy
 - job: "NugetDeploy"
   pool:
-    vmImage: "vs2017-win2016"
+    vmImage: "windows-2019"
   dependsOn:
   - ${{if eq(parameters.runTests, 'true')}}:
     - "NugetWindowsTests"
@@ -149,16 +154,13 @@ jobs:
       releaseVersionHeaderPattern: ${{parameters.releaseVersionHeaderPattern}}
       unreleasedVersionHeaderPattern: ${{parameters.unreleasedVersionHeaderPattern}}
       findUnreleasedPrereleaseVersion: ${{ne(parameters.nugetUnreleasedPrereleasePushEndpoint, '')}}
-  - task: UseDotNet@2
-    displayName: 'Install .NET Core sdk'
-    inputs:
-      version: ${{parameters.dotnetVersion}}
-    condition: and(succeeded(), ne(variables['newVersion'], ''))
+  # TODO this doesn't need to run if new version isn't defined
+  - template: "./install-dotnet.yml"
+    parameters:
+      dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}
+      dotnetRuntimeVersions: ${{parameters.dotnetRuntimeVersions}}
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
-
-      "dotnet version:"
-      dotnet --version | Render-Body
 
       if("${{parameters.runInheritDoc}}" -eq 'true'){
         "Installing InheritDoc:"
@@ -179,9 +181,6 @@ jobs:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
   - powershell: |
       function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
-
-      "dotnet version:"
-      dotnet --version | Render-Body
 
       "Restoring packages:"
       dotnet restore | Render-Body

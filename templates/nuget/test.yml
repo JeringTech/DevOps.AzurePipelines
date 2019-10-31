@@ -2,16 +2,19 @@ parameters:
   buildConfiguration: ""
   extraArguments: ""
   runCodeCoverage: "false"
-  dotnetVersion: ""
+  dotnetSdkVersion: ""
+  dotnetRuntimeVersions: []
+  outOfProcessTestDependencies: []
+
 steps:
 - checkout: "none"
 - template: "../shared/download-working-directory.yml"
-- task: UseDotNet@2
-  displayName: 'Install .NET Core SDK'
-  inputs:
-    version: ${{parameters.dotnetVersion}}
-- pwsh: "dotnet --version"
-  displayName: "Check Dotnet Version"
+- template: "install-dotnet.yml"
+  parameters:
+    dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}
+    dotnetRuntimeVersions: ${{parameters.dotnetRuntimeVersions}}
+- ${{if containsValue(parameters.outOfProcessTestDependencies, 'ffmpeg')}}:
+  - template: "../shared/install-ffmpeg.yml"
 # We need to restore so that tools like coverlet and Microsoft.Net.Test.SDK are available
 - task: "DotNetCoreCLI@2"
   displayName: "Restore"

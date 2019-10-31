@@ -1,0 +1,46 @@
+# According to https://docs.microsoft.com/en-us/azure/devops/pipelines/process/templates?view=azure-devops#context,
+# only system variables are available when evaulating template expressions, so we have to use conditions here, like
+# in this example https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/cross-platform-scripting?view=azure-devops&tabs=yaml#switch-based-on-platform.
+steps:
+- powershell: |
+    function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
+
+    "Installing FFmpeg:"
+    choco install ffmpeg --version=4.2.1 -y | Render-Body
+
+    if($lastExitCode -ne 0){
+      throw "Failed to install FFmpeg."
+    }
+
+    "FFmpeg installed:"
+    ffmpeg -version | Render-Body
+  condition: eq( variables['Agent.OS'], 'Windows_NT' )
+  displayName: Install FFmpeg for Windows
+- bash: |
+    sudo add-apt-repository ppa:jonathonf/ffmpeg-4
+    sudo apt-get -qq update
+    sudo apt-get install -y ffmpeg=7:4.2.1\*
+
+    lastExitCode=$?
+    if [ $lastExitCode -ne 0 ]; then
+      echo "Failed to install FFmpeg."
+      exit $lastExitCode
+    fi
+
+    echo "FFmpeg installed:"
+    ffmpeg -version
+  condition: eq( variables['Agent.OS'], 'Linux' )
+  displayName: Install FFmpeg for Linux
+- bash: |
+    brew install ffmpeg@4
+
+    lastExitCode=$?
+    if [ $lastExitCode -ne 0 ]; then
+      echo "Failed to install FFmpeg."
+      exit $lastExitCode
+    fi
+
+    echo "FFmpeg installed:"
+    ffmpeg -version
+  condition: eq( variables['Agent.OS'], 'Darwin' )
+  displayName: Install FFmpeg for macOS
