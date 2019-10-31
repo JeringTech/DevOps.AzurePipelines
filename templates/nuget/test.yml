@@ -2,10 +2,22 @@ parameters:
   buildConfiguration: ""
   extraArguments: ""
   runCodeCoverage: "false"
-
+  dotnetVersion: ""
 steps:
 - checkout: "none"
 - template: "../shared/download-working-directory.yml"
+- task: UseDotNet@2
+  displayName: 'Install .NET Core SDK'
+  inputs:
+    version: ${{parameters.dotnetVersion}}
+- task: "DotNetCoreCLI@2"
+  displayName: "Check Dotnet Version"
+  inputs:
+    command: "custom"
+    arguments: "--version"
+  # Skip dotnet first time experience
+  env:
+    DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 # We need to restore so that tools like coverlet and Microsoft.Net.Test.SDK are available
 - task: "DotNetCoreCLI@2"
   displayName: "Restore"
@@ -17,6 +29,3 @@ steps:
     command: "test"
     projects: "test/**/*.csproj"
     arguments: "--no-restore --no-build --configuration ${{parameters.buildConfiguration}} -p:CollectCoverage=${{parameters.runCodeCoverage}} -p:CoverletOutputFormat=cobertura ${{ parameters.extraArguments }}"
-  # Skip dotnet first time experience
-  env:
-    DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
