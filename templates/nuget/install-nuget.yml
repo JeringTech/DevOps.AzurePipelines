@@ -2,7 +2,7 @@ parameters:
   nugetDistUrl: ""
 
 steps:
-- powershell: |
+- pwsh: |
     function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 
     "Installing Nuget:`n"

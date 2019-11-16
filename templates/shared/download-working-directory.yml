@@ -1,6 +1,6 @@
 steps:
 # Download entire working directory from pipeline artifacts
-- task: "DownloadPipelineArtifact@0"
+- task: "DownloadPipelineArtifact@2"
   displayName: "Download Working Directory"
   inputs:
     artifactName: "WorkingDirectory"

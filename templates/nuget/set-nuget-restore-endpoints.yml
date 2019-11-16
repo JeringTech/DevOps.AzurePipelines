@@ -1,8 +1,12 @@
 parameters:
   nugetRestoreEndpoints: ""
   nugetRestorePats: ""
+  nugetDistUrl: ""
 
 steps:
+- template: "install-nuget.yml"
+  parameters:
+    nugetDistUrl: ${{parameters.nugetDistUrl}}
 - powershell: |
     function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
 

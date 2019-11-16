@@ -1,0 +1,31 @@
+parameters:
+  codecovKey: ""
+  runCodeCoverage: true
+
+steps:
+# Publish code coverage reports
+- pwsh: |
+    function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
+
+    $reports = get-childitem coverage.cobertura.xml -Recurse | foreach{$_.fullname}
+    # No reports
+    if($reports.length -eq 0){
+      "No code coverage reports generated..."
+      exit
+    }
+
+    # Publish report to codecov
+    "Publishing code coverage report(s)...`n"
+
+    "Installing Codecov:"
+    dotnet tool install Codecov.Tool --tool-path . --version 1.9.0 | Render-Body # Install to current dir https://github.com/dotnet/cli/issues/8368
+    if($lastExitCode -ne 0){
+      throw "Failed to install Codecov."
+    }
+
+    "Publishing to Codecov:"
+    ./codecov.exe -f $reports -t "${{parameters.codecovKey}}" --required | Render-Body
+    if($lastExitCode -ne 0){
+      throw "Failed to upload code coverage reports to Codecov."
+    }
+  displayName: "Publish code coverage reports"
