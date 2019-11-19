@@ -49,6 +49,7 @@ jobs:
       codecovKey: ${{parameters.codecovKey}}
       runCodeCoverage: ${{parameters.runCodeCoverage}}
   - template: "../shared/publish-working-directory.yml"
+  # TODO This should not be necessary so long as DownloadPipelineArtifact itemPattern in deploy actually works, test again
   - ${{if ne(parameters.nugetRestoreEndpoints, '')}}:
     - task: "PublishPipelineArtifact@1"
       displayName: "Publish Nuget Config"
