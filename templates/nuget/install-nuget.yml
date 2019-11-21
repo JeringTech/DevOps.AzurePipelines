@@ -10,5 +10,7 @@ steps:
     if(-not($?)){
       throw "Failed to install Nuget."
     }
-    "    Nuget v4.7.1 installed.`n"
+
+    "    Nuget installed:`n"
+    nuget.exe help | Render-Body
   displayName: "Install Nuget"

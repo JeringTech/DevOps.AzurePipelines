@@ -34,12 +34,6 @@ jobs:
   pool:
     vmImage: "windows-2019"
   steps:
-  - ${{if ne(parameters.nugetRestoreEndpoints, '')}}:
-    - template: "set-nuget-restore-endpoints.yml"
-      parameters:
-        nugetRestoreEndpoints: ${{parameters.nugetRestoreEndpoints}}
-        nugetRestorePats: ${{parameters.nugetRestorePats}}
-        nugetDistUrl: ${{parameters.nugetDistUrl}}
   - template: "build-and-test.yml"
     parameters:
       dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}
@@ -49,27 +43,11 @@ jobs:
       codecovKey: ${{parameters.codecovKey}}
       runCodeCoverage: ${{parameters.runCodeCoverage}}
   - template: "../shared/publish-working-directory.yml"
-  # TODO This should not be necessary so long as DownloadPipelineArtifact itemPattern in deploy actually works, test again
-  - ${{if ne(parameters.nugetRestoreEndpoints, '')}}:
-    - task: "PublishPipelineArtifact@1"
-      displayName: "Publish Nuget Config"
-      inputs:
-        artifactName: "NugetConfig"
-        targetPath: "$(System.DefaultWorkingDirectory)/NuGet.Config"
-# TODO steps are the same as for mac, extract shared steps
 # Linux
 - job: "LinuxBuildAndTest"
-  dependsOn: "WindowsBuildAndTest"
   pool:
     vmImage: "ubuntu-18.04"
   steps:
-  # Download nuget config (nuget.exe isn't easy to install and run on mac/linux, so reuse what we generated on windows)
-  - ${{if ne(parameters.nugetRestoreEndpoints, '')}}:
-    - task: "DownloadPipelineArtifact@2"
-      displayName: "Download Nuget Config"
-      inputs:
-        artifactName: "NugetConfig"
-        targetPath: "$(System.DefaultWorkingDirectory)"
   - template: "build-and-test.yml"
     parameters:
       dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}
@@ -82,17 +60,9 @@ jobs:
       extraArguments: "--framework ${{ parameters.nonWindowsFramework }}"
 # Mac
 - job: "MacOSBuildAndTest"
-  dependsOn: "WindowsBuildAndTest"
   pool:
     vmImage: "macOS-10.14"
   steps:
-  # Download nuget config (nuget.exe isn't easy to install and run on mac/linux, so reuse what we generated on windows)
-  - ${{if ne(parameters.nugetRestoreEndpoints, '')}}:
-    - task: "DownloadPipelineArtifact@2"
-      displayName: "Download Nuget Config"
-      inputs:
-        artifactName: "NugetConfig"
-        targetPath: "$(System.DefaultWorkingDirectory)"
   - template: "build-and-test.yml"
     parameters:
       dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}

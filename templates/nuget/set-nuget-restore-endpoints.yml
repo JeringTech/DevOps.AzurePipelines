@@ -41,4 +41,7 @@ steps:
         throw "Failed to add endpoint $endpoint to NuGet.Config."
       }
     }
+
+    "Sources:"
+    .\nuget.exe sources | Render-Body
   displayName: "Set Nuget restore endpoints"
