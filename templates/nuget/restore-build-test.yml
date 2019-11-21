@@ -5,7 +5,6 @@ parameters:
   buildConfiguration: "Release"
   codecovKey: ""
   runCodeCoverage: true
-  extraArguments: ""
   runTests: true
 
 steps:
@@ -22,7 +21,7 @@ steps:
     - template: "../shared/install-ffmpeg.yml"
   - ${{if containsValue(parameters.outOfProcessTestDependencies, 'nodejs')}}:
     - template: "../shared/install-nodejs.yml"
-  - script: "dotnet test -v n --no-restore --no-build --configuration ${{parameters.buildConfiguration}} -p:CollectCoverage=${{parameters.runCodeCoverage}} -p:CoverletOutputFormat=cobertura ${{ parameters.extraArguments }}"
+  - script: "dotnet test -v n --no-restore --no-build --configuration ${{parameters.buildConfiguration}} -p:CollectCoverage=${{parameters.runCodeCoverage}} -p:CoverletOutputFormat=cobertura"
     displayName: "Test"
     env:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true

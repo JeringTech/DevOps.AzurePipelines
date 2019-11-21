@@ -28,6 +28,7 @@ parameters:
   dotnetRuntimeVersions: ["2.1.13"]
   outOfProcessTestDependencies: []
   runTests: true
+  windowsOnly: false
 
 jobs:
 # Windows
@@ -45,46 +46,42 @@ jobs:
       runCodeCoverage: ${{parameters.runCodeCoverage}}
       runTests: ${{parameters.runTests}} 
   - template: "../shared/publish-working-directory.yml"
-# Linux
-- job: "Linux"
-  pool:
-    vmImage: "ubuntu-18.04"
-  steps:
-  - template: "restore-build-test.yml"
-    parameters:
-      dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}
-      dotnetRuntimeVersions: ${{parameters.dotnetRuntimeVersions}}
-      outOfProcessTestDependencies: ${{parameters.outOfProcessTestDependencies}}
-      buildConfiguration: ${{parameters.buildConfiguration}}
-      runCodeCoverage: false
-      runTests: ${{parameters.runTests}} 
-      # TODO Figure out how to run .Net Framework test assemblies on Linux/macOS using mono. For now, only allow target framework to be specified so that
-      # we can run only .Net Core test assemblies on Linux/macOS.
-      extraArguments: "--framework ${{ parameters.nonWindowsFramework }}"
-# Mac
-- job: "MacOS"
-  pool:
-    vmImage: "macOS-10.14"
-  steps:
-  - template: "restore-build-test.yml"
-    parameters:
-      dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}
-      dotnetRuntimeVersions: ${{parameters.dotnetRuntimeVersions}}
-      outOfProcessTestDependencies: ${{parameters.outOfProcessTestDependencies}}
-      buildConfiguration: ${{parameters.buildConfiguration}}
-      runCodeCoverage: false
-      runTests: ${{parameters.runTests}} 
-      # TODO Figure out how to run .Net Framework test assemblies on Linux/macOS using mono. For now, only allow target framework to be specified so that
-      # we can run only .Net Core test assemblies on Linux/macOS.
-      extraArguments: "--framework ${{ parameters.nonWindowsFramework }}"
+- ${{if eq(parameters.windowsOnly, 'false')}}:
+  # Linux
+  - job: "Linux"
+    pool:
+      vmImage: "ubuntu-18.04"
+    steps:
+    - template: "restore-build-test.yml"
+      parameters:
+        dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}
+        dotnetRuntimeVersions: ${{parameters.dotnetRuntimeVersions}}
+        outOfProcessTestDependencies: ${{parameters.outOfProcessTestDependencies}}
+        buildConfiguration: ${{parameters.buildConfiguration}}
+        runCodeCoverage: false
+        runTests: ${{parameters.runTests}} 
+  # Mac
+  - job: "MacOS"
+    pool:
+      vmImage: "macOS-10.14"
+    steps:
+    - template: "restore-build-test.yml"
+      parameters:
+        dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}
+        dotnetRuntimeVersions: ${{parameters.dotnetRuntimeVersions}}
+        outOfProcessTestDependencies: ${{parameters.outOfProcessTestDependencies}}
+        buildConfiguration: ${{parameters.buildConfiguration}}
+        runCodeCoverage: false
+        runTests: ${{parameters.runTests}} 
 # Deploy
 - job: "Deploy"
   pool:
     vmImage: "windows-2019"
   dependsOn:
   - "Windows"
-  - "Linux"
-  - "MacOS"
+  - ${{if eq(parameters.windowsOnly, 'false')}}:
+    - "Linux"
+    - "MacOS"
   steps:
   - checkout: "none"
   - template: "../shared/download-working-directory.yml"
