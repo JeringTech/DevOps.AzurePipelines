@@ -1,7 +1,8 @@
 parameters:
   dotnetSdkVersion: ""
   dotnetRuntimeVersions: []
-  outOfProcessTestDependencies: ""
+  outOfProcessTestDependencies: []
+  outOfProcessBuildDependencies: []
   buildConfiguration: "Release"
   codecovKey: ""
   runCodeCoverage: true
@@ -14,13 +15,13 @@ steps:
     dotnetRuntimeVersions: ${{parameters.dotnetRuntimeVersions}}
 - script: "dotnet restore"
   displayName: "Restore"
+- ${{if containsValue(parameters.outOfProcessBuildDependencies, 'nodejs')}}:
+  - template: "../shared/install-nodejs.yml"
 - script: "dotnet build --no-restore --configuration ${{parameters.buildConfiguration}}"
   displayName: "Build"
 - ${{if eq(parameters.runTests, 'true')}}:
   - ${{if containsValue(parameters.outOfProcessTestDependencies, 'ffmpeg')}}:
     - template: "../shared/install-ffmpeg.yml"
-  - ${{if containsValue(parameters.outOfProcessTestDependencies, 'nodejs')}}:
-    - template: "../shared/install-nodejs.yml"
   - script: "dotnet test -v n --no-restore --no-build --configuration ${{parameters.buildConfiguration}} -p:CollectCoverage=${{parameters.runCodeCoverage}} -p:CoverletOutputFormat=cobertura"
     displayName: "Test"
     env:

@@ -26,6 +26,7 @@ parameters:
   dotnetSdkVersion: "3.0.100"
   dotnetRuntimeVersions: ["2.1.13"]
   outOfProcessTestDependencies: []
+  outOfProcessBuildDependencies: []
   runTests: true
   windowsOnly: false
 
@@ -40,6 +41,7 @@ jobs:
       dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}
       dotnetRuntimeVersions: ${{parameters.dotnetRuntimeVersions}}
       outOfProcessTestDependencies: ${{parameters.outOfProcessTestDependencies}}
+      outOfProcessBuildDependencies: ${{parameters.outOfProcessBuildDependencies}}
       buildConfiguration: ${{parameters.buildConfiguration}}
       codecovKey: ${{parameters.codecovKey}}
       runCodeCoverage: ${{parameters.runCodeCoverage}}
@@ -56,6 +58,7 @@ jobs:
         dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}
         dotnetRuntimeVersions: ${{parameters.dotnetRuntimeVersions}}
         outOfProcessTestDependencies: ${{parameters.outOfProcessTestDependencies}}
+        outOfProcessBuildDependencies: ${{parameters.outOfProcessBuildDependencies}}
         buildConfiguration: ${{parameters.buildConfiguration}}
         runCodeCoverage: false
         runTests: ${{parameters.runTests}} 
@@ -69,6 +72,7 @@ jobs:
         dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}
         dotnetRuntimeVersions: ${{parameters.dotnetRuntimeVersions}}
         outOfProcessTestDependencies: ${{parameters.outOfProcessTestDependencies}}
+        outOfProcessBuildDependencies: ${{parameters.outOfProcessBuildDependencies}}
         buildConfiguration: ${{parameters.buildConfiguration}}
         runCodeCoverage: false
         runTests: ${{parameters.runTests}} 

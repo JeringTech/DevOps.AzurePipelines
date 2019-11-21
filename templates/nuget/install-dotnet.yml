@@ -3,6 +3,7 @@ parameters:
   dotnetRuntimeVersions: []
 
 steps:
+# TODO check if required runtime/sdk is already installed, don't reinstall if so
 - task: UseDotNet@2
   displayName: 'Install .NET Core SDK'
   inputs:
