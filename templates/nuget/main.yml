@@ -1,12 +1,3 @@
-# Notes
-# - NUGET_PACKAGES
-#   - Initially, NUGET_PACKAGES was set to $(system.defaultWorkingDirectory)/packages, enabling the following workflow:
-#     1) download packages to the working directory in the build job, 2) upload packages to pipeline artifacts, 3) avoid re-restoring and rebuilding in test and deploy jobs.
-#     This broke when DotNetCoreCLI@2 auto-updated to 2.144.3 (or possibly, when agents started using a newer version of the dotnet SDK), 
-#     with the error message "To run tests with dotnet test add "<IsTestProject>true<IsTestProject>" property to project file." Example build: 
-#     https://dev.azure.com/JeringTech/Markdig.Extensions.FlexiBlocks/_build/results?buildId=196. For some reason, Microsoft.Net.Test.SDK no longer sets IsTestProject automatically on Linux and MacOS.
-#   - We now omit --no-restore and for tests (nuget/test.yml). Even if we can figure out why things broke, it's all just too brittle to bother saving ~10 seconds.
-
 parameters:
   buildConfiguration: "Release"
   runInheritDoc: true
@@ -29,6 +20,9 @@ parameters:
   outOfProcessBuildDependencies: []
   runTests: true
   windowsOnly: false
+
+variables:
+  NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
 
 jobs:
 # Windows
