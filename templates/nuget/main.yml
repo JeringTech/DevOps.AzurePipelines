@@ -21,14 +21,13 @@ parameters:
   runTests: true
   windowsOnly: false
 
-variables:
-  NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
-
 jobs:
 # Windows
 - job: "Windows"
   pool:
     vmImage: "windows-2019"
+  variables:
+    NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
   steps:
   - template: "restore-build-test.yml"
     parameters:
@@ -46,6 +45,8 @@ jobs:
   - job: "Linux"
     pool:
       vmImage: "ubuntu-18.04"
+    variables:
+      NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
     steps:
     - template: "restore-build-test.yml"
       parameters:
@@ -60,6 +61,8 @@ jobs:
   - job: "MacOS"
     pool:
       vmImage: "macOS-10.14"
+    variables:
+      NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
     steps:
     - template: "restore-build-test.yml"
       parameters:
@@ -69,11 +72,13 @@ jobs:
         outOfProcessBuildDependencies: ${{parameters.outOfProcessBuildDependencies}}
         buildConfiguration: ${{parameters.buildConfiguration}}
         runCodeCoverage: false
-        runTests: ${{parameters.runTests}} 
+        runTests: ${{parameters.runTests}}
 # Deploy
 - job: "Deploy"
   pool:
     vmImage: "windows-2019"
+  variables:
+    NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
   dependsOn:
   - "Windows"
   - ${{if eq(parameters.windowsOnly, 'false')}}:
