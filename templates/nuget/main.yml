@@ -20,6 +20,7 @@ parameters:
   outOfProcessBuildDependencies: []
   runTests: true
   windowsOnly: false
+  cacheYarnPackages: false
 
 jobs:
 # Windows
@@ -28,6 +29,7 @@ jobs:
     vmImage: "windows-2019"
   variables:
     NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
+    YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
   steps:
   - template: "restore-build-test.yml"
     parameters:
@@ -38,7 +40,8 @@ jobs:
       buildConfiguration: ${{parameters.buildConfiguration}}
       codecovKey: ${{parameters.codecovKey}}
       runCodeCoverage: ${{parameters.runCodeCoverage}}
-      runTests: ${{parameters.runTests}} 
+      runTests: ${{parameters.runTests}}
+      cacheYarnPackages: ${{parameters.cacheYarnPackages}}
   - template: "../shared/publish-working-directory.yml"
 - ${{if eq(parameters.windowsOnly, 'false')}}:
   # Linux
@@ -47,6 +50,7 @@ jobs:
       vmImage: "ubuntu-18.04"
     variables:
       NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
+      YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
     steps:
     - template: "restore-build-test.yml"
       parameters:
@@ -57,12 +61,14 @@ jobs:
         buildConfiguration: ${{parameters.buildConfiguration}}
         runCodeCoverage: false
         runTests: ${{parameters.runTests}} 
+        cacheYarnPackages: ${{parameters.cacheYarnPackages}}
   # Mac
   - job: "MacOS"
     pool:
       vmImage: "macOS-10.14"
     variables:
       NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
+      YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
     steps:
     - template: "restore-build-test.yml"
       parameters:
@@ -73,6 +79,7 @@ jobs:
         buildConfiguration: ${{parameters.buildConfiguration}}
         runCodeCoverage: false
         runTests: ${{parameters.runTests}}
+        cacheYarnPackages: ${{parameters.cacheYarnPackages}}
 # Deploy
 - job: "Deploy"
   pool:

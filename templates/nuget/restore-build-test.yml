@@ -7,6 +7,7 @@ parameters:
   codecovKey: ""
   runCodeCoverage: true
   runTests: true
+  cacheYarnPackages: false
 
 steps:
 - task: Cache@2
@@ -17,6 +18,15 @@ steps:
        nuget
     path: $(NUGET_PACKAGES)
   displayName: Cache NuGet packages
+- ${{if eq(parameters.cacheYarnPackages, 'true')}}:
+  - task: Cache@2
+    inputs:
+      key: 'yarn | "$(Agent.OS)" | **/yarn.lock'
+      restoreKeys: |
+        yarn | "$(Agent.OS)"
+        yarn
+      path: $(YARN_CACHE_FOLDER)
+    displayName: Cache Yarn packages
 - template: "install-dotnet.yml"
   parameters:
     dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}
