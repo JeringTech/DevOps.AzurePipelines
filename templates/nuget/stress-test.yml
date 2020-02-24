@@ -1,46 +1,43 @@
 parameters:
+  iterations: 30
   buildConfiguration: "Release"
-  iterations: 100
+  dotnetSdkVersion: "3.0.100"
+  dotnetRuntimeVersions: ["2.1.13"]
+  outOfProcessTestDependencies: []
+  outOfProcessBuildDependencies: []
 
 jobs:
 # Build
-- job: "BuildAndTest"
+- job: "StressTest"
   pool:
-    vmImage: "vs2017-win2016"
+    vmImage: "windows-2019"
+  variables:
+    NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
+    YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
   steps:
-  - powershell: |
-      function Render-Body { $input | foreach{@{value=$_}} | Format-Table -Property @{Expression={" "}},value -HideTableHeader -wrap}
-
-      # Place cache in working directory so that it is uploaded to pipeline artifacts
-      $env:NUGET_PACKAGES=$env:SYSTEM_DEFAULTWORKINGDIRECTORY + "/packages"
-
-      "Restoring packages:"
-      dotnet restore | Render-Body
-      if($lastExitCode -ne 0){
-        throw "Failed to restore dependencies."
-      }
-
-      "Building solution:"
-      dotnet build --no-restore --configuration ${{parameters.buildConfiguration}} -p:CopyLocalLockFileAssemblies=true | Render-Body
-      if($lastExitCode -ne 0){
-        throw "Failed to build solution."
-      }
-
+  - template: "restore-build-test.yml"
+    parameters:
+      dotnetSdkVersion: ${{parameters.dotnetSdkVersion}}
+      dotnetRuntimeVersions: ${{parameters.dotnetRuntimeVersions}}
+      outOfProcessTestDependencies: ${{parameters.outOfProcessTestDependencies}}
+      outOfProcessBuildDependencies: ${{parameters.outOfProcessBuildDependencies}}
+      buildConfiguration: ${{parameters.buildConfiguration}}
+      codecovKey: ""
+      runCodeCoverage: false
+      runTests: false
+      cacheYarnPackages: true
+  ## TODO hangs after tests complete if we use powershell
+  - pwsh: |
       "Running tests (${{parameters.iterations}} iterations):"
       $testProjects = get-childitem test/**/*.csproj | foreach{$_.fullname}
       $iterations = [int]"${{parameters.iterations}}"
       for ($i=0; $i -le $iterations; $i++) {
         foreach($testProject in $testProjects){
-          dotnet test $testProject --no-build --no-restore --configuration ${{parameters.buildConfiguration}} --logger trx --results-directory $env:AGENT_TEMPDIRECTORY | Render-Body
+          dotnet test $testProject --no-restore --no-build --configuration ${{parameters.buildConfiguration}}
         }
+
         if($lastExitCode -ne 0){
           break;
         }
       }   
-    displayName: "Build and test"
-  - task: PublishTestResults@2
-    inputs:
-      testResultsFormat: 'VSTest'
-      testResultsFiles: '**/*.trx'
-      searchFolder: "$(Agent.TempDirectory)"
-    displayName: "Publish test results"
+    displayName: "Test"
