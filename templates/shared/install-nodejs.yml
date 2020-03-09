@@ -3,11 +3,11 @@
 # in this example https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/cross-platform-scripting?view=azure-devops&tabs=yaml#switch-based-on-platform.
 #
 # At the time of this writing NodeJS version on hosted mac agents is 6.x.x.
-# Some javascript build libraries require a more recent version than 6.x.x, so install 12.13.0.
-# Note, at the time of this writing, NodeJS version is 12.13.0 on linux and windows hosted agents.
+# Some javascript build libraries require a more recent version than 6.x.x, so install 12.x.x.
+# Note, at the time of this writing, NodeJS version is 12.x.x on linux and windows hosted agents.
 steps:
 - task: NodeTool@0
   inputs:
-    versionSpec: '12.13.0'
+    versionSpec: '12.16.1'
   condition: eq( variables['Agent.OS'], 'Darwin' )
   displayName: Install NodeJS for macOS
