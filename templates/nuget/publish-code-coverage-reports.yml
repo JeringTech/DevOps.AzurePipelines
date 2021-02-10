@@ -18,7 +18,7 @@ steps:
     "Publishing code coverage report(s)...`n"
 
     "Installing Codecov:"
-    dotnet tool install Codecov.Tool --tool-path . --version 1.9.0 | Render-Body # Install to current dir https://github.com/dotnet/cli/issues/8368
+    dotnet tool install Codecov.Tool --tool-path . --version 1.12.4 | Render-Body # Install to current dir https://github.com/dotnet/cli/issues/8368
     if($lastExitCode -ne 0){
       throw "Failed to install Codecov."
     }
