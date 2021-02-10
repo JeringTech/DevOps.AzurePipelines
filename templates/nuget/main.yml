@@ -14,8 +14,8 @@ parameters:
   nugetUnreleasedPrereleasePushPat: "$(nugetUnreleasedPrereleasePushPat)"
   nugetDistUrl: "https://dist.nuget.org/win-x86-commandline/v4.7.1/nuget.exe"
   githubPat: "$(githubPat)"
-  dotnetSdkVersion: "3.0.100"
-  dotnetRuntimeVersions: ["2.1.13"]
+  dotnetSdkVersion: "3.1.406"
+  dotnetRuntimeVersions: ["3.1.12"]
   outOfProcessTestDependencies: []
   outOfProcessBuildDependencies: []
   runTests: true
