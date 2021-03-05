@@ -89,7 +89,7 @@ jobs:
           "$($packageJson.name)@$env:NEWVERSION already exists..."
           exit 0
         }else{
-          throw "An unexpected error occurred while attempting to publish the package. If it was an intermittent issue, do a manual rebuild of the same commit ($env:BUILD_SOURCEVERSION). Otherwise, rectify the issue and merge the changes into master to trigger a CI build."
+          throw "An unexpected error occurred while attempting to publish the package. If it was an intermittent issue, do a manual rebuild of the same commit ($env:BUILD_SOURCEVERSION). Otherwise, rectify the issue and merge the changes into master/main to trigger a CI build."
         }
       }
     displayName: "Publish"

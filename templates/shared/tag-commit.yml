@@ -34,7 +34,7 @@ steps:
     if($lastExitCode -ne 0){
       throw "An error occurred while attempting to push tag $env:NEWVERSION to Github. If it was an intermittent issue, 
     do a manual rebuild of the same commit ($env:BUILD_SOURCEVERSION). Otherwise, manually tag commit $env:BUILD_SOURCEVERSION as $env:NEWVERSION (packages generated from this commit have already been published) then
-    rectify the issue and merge the changes into master to trigger a CI build."
+    rectify the issue and merge the changes into master/main to trigger a CI build."
     }
     "    Tag $env:NEWVERSION pushed to Github."
   # TODO Github displays all tags as releases, there is an issue for this - https://github.community/t5/How-to-use-Git-and-GitHub/Tag-without-release/m-p/7906. At present, tagging every CI version clutters up the
