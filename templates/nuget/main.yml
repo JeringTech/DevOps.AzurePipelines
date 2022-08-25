@@ -65,7 +65,7 @@ jobs:
   # Mac
   - job: "MacOS"
     pool:
-      vmImage: "macOS-10.15"
+      vmImage: "macOS-12"
     steps:
     - template: "restore-build-test.yml"
       parameters:
