@@ -35,8 +35,7 @@ steps:
     dotnetRuntimeVersions: ${{parameters.dotnetRuntimeVersions}}
 - script: "dotnet restore"
   displayName: "Restore"
-- ${{if containsValue(parameters.outOfProcessBuildDependencies, 'nodejs')}}:
-  - template: "../shared/install-nodejs.yml"
+- template: "../shared/install-nodejs.yml"
 - script: "dotnet build --no-restore --configuration ${{parameters.buildConfiguration}} -maxcpucount:1" # TODO yarn has issues when run in parallel - https://github.com/yarnpkg/yarn/issues/2629
   displayName: "Build"
 - ${{if eq(parameters.runTests, 'true')}}:
