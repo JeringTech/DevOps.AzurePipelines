@@ -47,7 +47,7 @@ jobs:
   # Linux
   - job: "Linux"
     pool:
-      vmImage: "ubuntu-18.04"
+      vmImage: "ubuntu-22.04"
     variables:
       NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
       YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
