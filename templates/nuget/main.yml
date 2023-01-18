@@ -26,7 +26,7 @@ jobs:
 # Windows
 - job: "Windows"
   pool:
-    vmImage: "windows-2019"
+    vmImage: "windows-2022"
   variables:
     NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
     YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
@@ -80,7 +80,7 @@ jobs:
 # Deploy
 - job: "Deploy"
   pool:
-    vmImage: "windows-2019"
+    vmImage: "windows-2022"
   variables:
     NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
   dependsOn:
