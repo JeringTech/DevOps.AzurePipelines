@@ -149,7 +149,7 @@ jobs:
         # 409 returned if a package with the provided ID and version already exists - https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#push-a-package
         if($lastExitCode -ne 0){
           # So dirty
-          if(($message.Length -eq 4) -and $message[3].Contains(" 409 ")){
+          if(($message.Length -gt 4) -and $message[4].Contains(" 409 ")){
             # If error occurred because package already exists, allow pipeline to continue
             "$($package.name) already exists in feed $nugetPushEndpoint..."
           }else{
